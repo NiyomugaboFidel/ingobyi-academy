@@ -1,0 +1,54 @@
+# --- Repo-wide (Ingobyi Academy monorepo) ---
+
+# Dependencies  any package manager, any subfolder
+node_modules/
+**/node_modules/
+
+# Test tooling: MongoDB Memory Server binary cache (often 100MB+)
+**/mongodb-memory-server/
+
+# Environment & secrets (commit `.env.example` only, never real secrets)
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+Thumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# VS Code  keep shared recommendations, ignore user state
+.vscode/*
+!.vscode/extensions.json
+
+# Debug / misc
+*.pem
+.cache/

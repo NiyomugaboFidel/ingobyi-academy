@@ -1,0 +1,54 @@
+# Development overlay — hot reload, direct ports (no nginx)
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#   # or: make docker-dev
+#
+# Frontend: http://localhost:3000
+# API:       http://localhost:3001/api
+
+name: ingobyi-academy-dev
+
+services:
+  postgres:
+    ports:
+      - '5432:5432'
+
+  api:
+    build:
+      target: development
+    environment:
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:3000
+      RUN_SEED: 'false'
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    ports:
+      - '3001:3001'
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      target: development
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_PUBLIC_WS_URL: http://localhost:3001
+      NODE_ENV: development
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    ports:
+      - '3000:3000'
+    healthcheck:
+      disable: true
+    depends_on:
+      api:
+        condition: service_started
+
+  nginx:
+    profiles: [production-only]

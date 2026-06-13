@@ -1,0 +1,238 @@
+'use client';
+
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import {
+  ArrowRight, Award, BookOpen, Compass, Play, Sparkles, Trophy, Users,
+} from 'lucide-react';
+import { LearningShell } from '@/components/layout/learning-shell';
+import { ProgressRing } from '@/components/dashboard/progress-ring';
+import { Button } from '@/components/ui/button';
+import { getFeatured, getCategories } from '@/lib/api/catalog';
+import { myEnrollments } from '@/lib/api/enrollments';
+import { getMyAchievements } from '@/lib/api/achievements';
+import { getCourseProgress } from '@/lib/api/progress';
+import { getCommunityFeed } from '@/lib/api/community';
+import { useAuthStore } from '@/lib/auth/store';
+
+export default function StudentDashboardPage() {
+  const token = useAuthStore((s) => s.accessToken)!;
+  const user = useAuthStore((s) => s.user);
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', 'my'],
+    queryFn: () => myEnrollments(token),
+    enabled: !!token,
+  });
+
+  const { data: achievements = [] } = useQuery({
+    queryKey: ['achievements', 'mine'],
+    queryFn: () => getMyAchievements(token),
+    enabled: !!token,
+  });
+
+  const { data: progressMap = {} } = useQuery({
+    queryKey: ['progress', 'all', enrollments.map((e) => e.course.id).join(',')],
+    queryFn: async () => {
+      const map: Record<string, number> = {};
+      await Promise.all(
+        enrollments.map(async (e) => {
+          try {
+            const p = await getCourseProgress(e.course.id, token);
+            map[e.course.id] = p.completionPercent;
+          } catch {
+            map[e.course.id] = e.status === 'COMPLETED' ? 100 : 0;
+          }
+        }),
+      );
+      return map;
+    },
+    enabled: !!token && enrollments.length > 0,
+  });
+
+  const { data: featured = [] } = useQuery({
+    queryKey: ['catalog', 'featured'],
+    queryFn: () => getFeatured(),
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['catalog', 'categories'],
+    queryFn: () => getCategories(),
+  });
+
+  const { data: feed } = useQuery({
+    queryKey: ['community', 'feed', 'preview'],
+    queryFn: () => getCommunityFeed(token, { limit: 3 }),
+    enabled: !!token,
+  });
+
+  const active = enrollments.filter((e) => e.status === 'ACTIVE');
+  const continueCourses = active
+    .map((e) => ({ ...e, progress: progressMap[e.course.id] ?? 0 }))
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 4);
+
+  return (
+    <LearningShell allowedRoles={['STUDENT', 'SUPERADMIN']}>
+      <section className="relative overflow-hidden rounded-2xl border border-brand-green/15 bg-gradient-to-br from-brand-green to-brand-green-dark px-6 py-8 text-white shadow-lg sm:px-8 sm:py-10">
+        <div className="relative z-10 max-w-2xl">
+          <p className="text-sm font-medium text-white/75">Your learning space</p>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
+            Welcome back, {user?.firstName}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-white/80">
+            Pick up where you left off, explore new skills, and connect with learners across Ingobyi Academy.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button asChild size="sm" className="rounded-full bg-white text-brand-green hover:bg-white/90">
+              <Link href="/student/enrolled"><Play className="mr-1.5 h-4 w-4" /> Continue learning</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="rounded-full border-white/30 bg-transparent text-white hover:bg-white/10">
+              <Link href="/catalog"><Compass className="mr-1.5 h-4 w-4" /> Browse catalog</Link>
+            </Button>
+          </div>
+        </div>
+        <Sparkles className="absolute -right-4 -top-4 h-32 w-32 text-white/10" />
+      </section>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
+          {continueCourses.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-foreground">Continue learning</h2>
+                <Link href="/student/enrolled" className="text-sm font-semibold text-brand-green hover:underline">View all</Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {continueCourses.map((e) => (
+                  <Link
+                    key={e.id}
+                    href={`/student/learn?courseId=${e.course.id}`}
+                    className="group flex gap-4 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-green/25 hover:shadow-md"
+                  >
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-brand-green/10">
+                      {e.course.thumbnailUrl ? (
+                        <img src={e.course.thumbnailUrl} alt="" className="h-full w-full rounded-lg object-cover" />
+                      ) : (
+                        <BookOpen className="h-7 w-7 text-brand-green" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 font-semibold text-foreground group-hover:text-brand-green">{e.course.title}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-brand-green transition-all" style={{ width: `${e.progress}%` }} />
+                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">{e.progress}%</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {featured.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-foreground">Recommended for you</h2>
+                <Link href="/catalog" className="text-sm font-semibold text-brand-green hover:underline">Explore</Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {featured.slice(0, 4).map((course) => (
+                  <Link
+                    key={course.id}
+                    href={`/catalog/${course.slug}`}
+                    className="rounded-xl border border-border bg-card p-4 shadow-sm transition hover:border-brand-green/25"
+                  >
+                    <p className="font-semibold text-foreground">{course.title}</p>
+                    {course.shortDescription && (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{course.shortDescription}</p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {categories.length > 0 && (
+            <section>
+              <h2 className="mb-4 text-lg font-bold text-foreground">Popular categories</h2>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/search?category=${cat.slug}`}
+                    className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:border-brand-green/30 hover:bg-brand-green/5"
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <aside className="space-y-6">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="font-bold text-foreground">Your progress</h3>
+            <div className="mt-4 flex items-center justify-center">
+              <ProgressRing
+                value={enrollments.length
+                  ? Math.round(enrollments.reduce((s, e) => s + (progressMap[e.course.id] ?? 0), 0) / enrollments.length)
+                  : 0}
+                size={120}
+              />
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-center text-sm">
+              <div><dt className="text-muted-foreground">Enrolled</dt><dd className="text-lg font-bold">{enrollments.length}</dd></div>
+              <div><dt className="text-muted-foreground">Active</dt><dd className="text-lg font-bold">{active.length}</dd></div>
+            </dl>
+          </div>
+
+          {achievements.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-brand-green" />
+                <h3 className="font-bold text-foreground">Achievements</h3>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {achievements.slice(0, 3).map((a) => (
+                  <li key={a.id} className="flex items-center gap-2 text-sm">
+                    <Award className="h-4 w-4 text-amber-500" />
+                    <span>{(a.definition as { name?: string; title?: string }).name ?? (a.definition as { title?: string }).title}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {feed && feed.data.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-brand-green" />
+                  <h3 className="font-bold text-foreground">Community</h3>
+                </div>
+                <Link href="/community" className="text-xs font-semibold text-brand-green hover:underline">See all</Link>
+              </div>
+              <ul className="space-y-3">
+                {feed.data.map((post) => (
+                  <li key={post.id} className="text-sm">
+                    <p className="font-medium text-foreground">
+                      {post.author.firstName} {post.author.lastName}
+                    </p>
+                    <p className="line-clamp-2 text-muted-foreground">{post.content}</p>
+                  </li>
+                ))}
+              </ul>
+              <Link href="/community" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-green hover:underline">
+                Join the conversation <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
+        </aside>
+      </div>
+    </LearningShell>
+  );
+}

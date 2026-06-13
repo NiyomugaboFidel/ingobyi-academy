@@ -1,0 +1,14 @@
+# Railway — backend API service
+# Dashboard: set Root Directory = /backend
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm run build"
+watchPatterns = ["src/**", "prisma/**"]
+
+[deploy]
+startCommand = "npm run start:railway"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
