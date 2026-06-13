@@ -28,7 +28,20 @@ export class CommunityService {
               avatarUrl: true,
             },
           },
-          comments: { take: 3, orderBy: { createdAt: 'desc' } },
+          comments: {
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.communityPost.count({ where }),
@@ -151,6 +164,30 @@ export class CommunityService {
       user: users.find((u) => u.id === a.userId),
       points: a._count.id * 10,
     }));
+  }
+
+  async searchUsers(q: string, limit = 20) {
+    const term = q.trim();
+    if (!term) return [];
+    return this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { firstName: { contains: term, mode: 'insensitive' } },
+          { lastName: { contains: term, mode: 'insensitive' } },
+          { email: { contains: term, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        bio: true,
+      },
+      take: Math.min(limit, 50),
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
   }
 
   async profile(userId: string) {

@@ -6,6 +6,7 @@ import {
 import {
   AuditAction,
   CourseStatus,
+  NotificationType,
   ResourceVisibility,
   UserRole,
 } from '@prisma/client';
@@ -24,6 +25,7 @@ import { sanitizeUser } from '../../common/utils/sanitize-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ConversationsService } from '../messaging/conversations.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -34,6 +36,7 @@ export class CoursesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly conversations: ConversationsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(user: AuthenticatedUser, dto: CreateCourseDto) {
@@ -155,7 +158,96 @@ export class CoursesService {
     });
   }
 
+  async listPending(user: AuthenticatedUser) {
+    const include = {
+      org: { select: { id: true, name: true, slug: true } },
+      category: { select: { id: true, name: true, slug: true } },
+      trainers: {
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+        },
+      },
+    };
+
+    if (user.role === UserRole.SUPERADMIN) {
+      return this.prisma.course.findMany({
+        where: { status: CourseStatus.PENDING_REVIEW },
+        orderBy: { updatedAt: 'desc' },
+        include,
+      });
+    }
+
+    const effectiveRole = guardRole(user);
+    if (effectiveRole === UserRole.ADMIN && user.orgId) {
+      return this.prisma.course.findMany({
+        where: { orgId: user.orgId, status: CourseStatus.PENDING_REVIEW },
+        orderBy: { updatedAt: 'desc' },
+        include,
+      });
+    }
+
+    if (effectiveRole === UserRole.TRAINER) {
+      return this.prisma.course.findMany({
+        where: {
+          status: CourseStatus.PENDING_REVIEW,
+          trainers: { some: { userId: user.userId } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        include,
+      });
+    }
+
+    throw new ForbiddenException('Not allowed to view pending courses');
+  }
+
+  async getPreviewBySlug(slug: string, user: AuthenticatedUser) {
+    const course = await this.prisma.course.findFirst({
+      where: { slug },
+      include: {
+        modules: {
+          include: { lessons: { orderBy: { order: 'asc' } } },
+          orderBy: { order: 'asc' },
+        },
+        trainers: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+        category: true,
+        org: { select: { id: true, name: true, slug: true, logoUrl: true } },
+      },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+
+    const isTrainer = course.trainers.some((t) => t.userId === user.userId);
+    const isOrgAdmin =
+      user.orgRole === UserRole.ADMIN &&
+      user.orgId &&
+      course.orgId === user.orgId;
+    const canPreview =
+      user.role === UserRole.SUPERADMIN || isOrgAdmin || isTrainer;
+
+    if (!canPreview) {
+      throw new ForbiddenException('Course preview not available');
+    }
+
+    return course;
+  }
+
   async requestPublish(id: string, userId: string) {
+    const existing = await this.prisma.course.findUnique({
+      where: { id },
+      include: { org: { select: { name: true } } },
+    });
+    if (!existing) throw new NotFoundException('Course not found');
+
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PENDING_REVIEW },
@@ -167,34 +259,135 @@ export class CoursesService {
       entity: 'Course',
       entityId: id,
     });
+
+    const notifyTitle = `Course pending approval — ${existing.title}`;
+    const notifyBody = `A trainer submitted "${existing.title}" for publication review.`;
+    const link = '/admin/course-approvals';
+
+    if (course.orgId) {
+      const orgAdmins = await this.prisma.membership.findMany({
+        where: {
+          orgId: course.orgId,
+          role: UserRole.ADMIN,
+          status: 'ACTIVE',
+        },
+        select: { userId: true },
+      });
+      for (const admin of orgAdmins) {
+        void this.notifications.create(
+          admin.userId,
+          NotificationType.ANNOUNCEMENT,
+          notifyTitle,
+          notifyBody,
+          link,
+        );
+      }
+    }
+
+    const superadmins = await this.prisma.user.findMany({
+      where: { platformRole: UserRole.SUPERADMIN, isActive: true },
+      select: { id: true },
+    });
+    for (const sa of superadmins) {
+      void this.notifications.create(
+        sa.id,
+        NotificationType.ANNOUNCEMENT,
+        notifyTitle,
+        notifyBody,
+        '/superadmin/course-approvals',
+      );
+    }
+
     return course;
   }
 
-  async approve(id: string, userId: string) {
+  async approve(id: string, user: AuthenticatedUser) {
+    const existing = await this.prisma.course.findUnique({
+      where: { id },
+      include: {
+        trainers: { select: { userId: true } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Course not found');
+
+    if (user.role !== UserRole.SUPERADMIN) {
+      const isOrgAdmin =
+        user.orgRole === UserRole.ADMIN &&
+        user.orgId &&
+        existing.orgId === user.orgId;
+      if (!isOrgAdmin) {
+        throw new ForbiddenException(
+          'Only organization admin or superadmin can approve courses',
+        );
+      }
+    }
+
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PUBLISHED, publishedAt: new Date() },
     });
     await this.audit.log({
-      userId,
+      userId: user.userId,
+      orgId: course.orgId ?? undefined,
       action: AuditAction.APPROVE,
       entity: 'Course',
       entityId: id,
     });
+
+    for (const trainer of existing.trainers) {
+      void this.notifications.create(
+        trainer.userId,
+        NotificationType.COURSE_APPROVED,
+        `Course approved — ${existing.title}`,
+        'Your course is now published in the catalog.',
+        `/catalog/${existing.slug}`,
+      );
+    }
+
     return course;
   }
 
-  async reject(id: string, userId: string) {
+  async reject(id: string, user: AuthenticatedUser) {
+    const existing = await this.prisma.course.findUnique({
+      where: { id },
+      include: { trainers: { select: { userId: true } } },
+    });
+    if (!existing) throw new NotFoundException('Course not found');
+
+    if (user.role !== UserRole.SUPERADMIN) {
+      const isOrgAdmin =
+        user.orgRole === UserRole.ADMIN &&
+        user.orgId &&
+        existing.orgId === user.orgId;
+      if (!isOrgAdmin) {
+        throw new ForbiddenException(
+          'Only organization admin or superadmin can reject courses',
+        );
+      }
+    }
+
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.DRAFT },
     });
     await this.audit.log({
-      userId,
+      userId: user.userId,
+      orgId: course.orgId ?? undefined,
       action: AuditAction.REJECT,
       entity: 'Course',
       entityId: id,
     });
+
+    for (const trainer of existing.trainers) {
+      void this.notifications.create(
+        trainer.userId,
+        NotificationType.ANNOUNCEMENT,
+        `Course needs changes — ${existing.title}`,
+        'Your publication request was sent back to draft. Review feedback and resubmit.',
+        `/trainer/courses/${existing.id}/edit`,
+      );
+    }
+
     return course;
   }
 

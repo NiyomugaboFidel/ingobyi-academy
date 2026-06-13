@@ -81,6 +81,16 @@ export function getCommunityProfile(userId: string, token: string) {
   return apiRequest<CommunityProfile>(`/community/${userId}/profile`, { token });
 }
 
+export function searchCommunityUsers(token: string, q: string, limit = 20) {
+  const qs = new URLSearchParams({ q, limit: String(limit) });
+  return apiRequest<CommunityAuthor[]>(`/community/search?${qs}`, { token });
+}
+
+export function sharePostOnLinkedIn(postUrl: string, text: string) {
+  const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}&summary=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 export function deleteCommunityPost(postId: string, token: string) {
   return apiRequest(`/community/posts/${postId}`, { method: 'DELETE', token });
 }

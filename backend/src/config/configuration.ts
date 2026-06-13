@@ -1,5 +1,32 @@
 import { z } from 'zod';
 
+/** Normalize legacy/alternate env names before Zod validation. */
+export function normalizeEnv(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const env = { ...raw };
+
+  if (!env.SMTP_FROM && env.EMAIL_FROM) {
+    env.SMTP_FROM = env.EMAIL_FROM;
+  }
+
+  if (typeof env.SMTP_PASS === 'string') {
+    env.SMTP_PASS = env.SMTP_PASS.replace(/\s+/g, '');
+  }
+
+  const cloudinaryUrl = env.CLOUDINARY_URL;
+  if (typeof cloudinaryUrl === 'string' && cloudinaryUrl.startsWith('cloudinary://')) {
+    const match = /^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/.exec(cloudinaryUrl);
+    if (match) {
+      if (!env.CLOUDINARY_API_KEY) env.CLOUDINARY_API_KEY = match[1];
+      if (!env.CLOUDINARY_API_SECRET) env.CLOUDINARY_API_SECRET = match[2];
+      if (!env.CLOUDINARY_CLOUD_NAME) env.CLOUDINARY_CLOUD_NAME = match[3];
+    }
+  }
+
+  return env;
+}
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'production', 'test', 'staging'])
@@ -35,6 +62,10 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  /** Parsed into individual CLOUDINARY_* vars when set (cloudinary://key:secret@cloud). */
+  CLOUDINARY_URL: z.string().optional(),
+  /** Legacy alias for SMTP_FROM. */
+  EMAIL_FROM: z.string().email().optional(),
   THROTTLE_TTL: z.coerce.number().default(60),
   THROTTLE_LIMIT: z.coerce
     .number()
@@ -44,7 +75,7 @@ const envSchema = z.object({
 export type EnvConfig = z.infer<typeof envSchema>;
 
 export function validateEnv(config: Record<string, unknown>): EnvConfig {
-  const result = envSchema.safeParse(config);
+  const result = envSchema.safeParse(normalizeEnv(config));
   if (!result.success) {
     const messages = result.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)

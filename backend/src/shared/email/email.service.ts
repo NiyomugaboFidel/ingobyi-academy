@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { EnvConfig } from '../../config/configuration';
@@ -7,7 +7,7 @@ import * as templates from './email.templates';
 export type OtpPurpose = 'VERIFY_EMAIL' | 'RESET_PASSWORD';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
   private readonly isDev: boolean;
@@ -27,6 +27,20 @@ export class EmailService {
     } else if (this.isDev) {
       this.logger.warn(
         'SMTP not configured — OTP codes will be logged to console in development',
+      );
+    }
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (!this.transporter) return;
+    try {
+      await this.transporter.verify();
+      const from =
+        this.config.get('SMTP_FROM', { infer: true }) ?? 'noreply@ingobyi.com';
+      this.logger.log(`SMTP ready (${this.config.get('SMTP_HOST', { infer: true })}, from: ${from})`);
+    } catch (err) {
+      this.logger.error(
+        `SMTP verification failed: ${(err as Error).message}. Check SMTP_HOST, SMTP_USER, SMTP_PASS, and SMTP_FROM in .env`,
       );
     }
   }

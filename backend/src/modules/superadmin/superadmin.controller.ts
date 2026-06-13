@@ -103,7 +103,7 @@ export class SuperadminController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
   ) {
-    return this.courses.approve(id, user.userId);
+    return this.courses.approve(id, user);
   }
 
   @Post('courses/:id/reject')
@@ -112,7 +112,7 @@ export class SuperadminController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
   ) {
-    return this.courses.reject(id, user.userId);
+    return this.courses.reject(id, user);
   }
 
   @Get('stats')

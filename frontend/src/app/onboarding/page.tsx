@@ -11,6 +11,7 @@ import {
   Loader2,
   RefreshCw,
   School,
+  Search,
   Send,
   XCircle,
 } from 'lucide-react';
@@ -66,6 +67,7 @@ export default function OnboardingPage() {
   const [orgName, setOrgName] = useState('');
   const [orgType, setOrgType] = useState('SCHOOL');
   const [orgCountry, setOrgCountry] = useState('');
+  const [orgSearch, setOrgSearch] = useState('');
 
   const { data: directoryOrgs = [], isLoading: dirLoading } = useQuery({
     queryKey: ['onboarding', 'directory'],
@@ -80,6 +82,16 @@ export default function OnboardingPage() {
 
   const pendingRequests = myRequests.filter((r) => r.status === 'PENDING');
   const selectedOrg = directoryOrgs.find((o) => o.id === selectedOrgId);
+  const filteredOrgs = directoryOrgs.filter((org) => {
+    const q = orgSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      org.name.toLowerCase().includes(q) ||
+      org.type?.toLowerCase().includes(q) ||
+      org.city?.toLowerCase().includes(q) ||
+      org.country?.toLowerCase().includes(q)
+    );
+  });
 
   if (!accessToken || !user) {
     return (
@@ -307,8 +319,17 @@ export default function OnboardingPage() {
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-brand-muted">
                     Organization
                   </label>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
+                    <Input
+                      value={orgSearch}
+                      onChange={(e) => setOrgSearch(e.target.value)}
+                      placeholder="Search organizations by name, city, or type…"
+                      className="h-10 pl-9"
+                    />
+                  </div>
                   <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-brand-green/10 p-2">
-                    {directoryOrgs.map((org) => {
+                    {filteredOrgs.map((org) => {
                       const alreadyPending = pendingRequests.some(
                         (r) => r.orgId === org.id,
                       );
@@ -346,9 +367,11 @@ export default function OnboardingPage() {
                         </label>
                       );
                     })}
-                    {directoryOrgs.length === 0 && (
+                    {filteredOrgs.length === 0 && (
                       <p className="py-4 text-center text-sm text-brand-muted">
-                        No organizations in the directory yet.
+                        {orgSearch.trim()
+                          ? 'No organizations match your search.'
+                          : 'No organizations in the directory yet.'}
                       </p>
                     )}
                   </div>

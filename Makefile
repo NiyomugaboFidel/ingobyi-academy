@@ -1,4 +1,4 @@
-.PHONY: help docker-check docker-init docker-up docker-down docker-logs docker-seed docker-health docker-rebuild docker-dev docker-dev-down docker-ps compose
+.PHONY: help dev docker-check docker-init docker-up docker-down docker-logs docker-seed docker-health docker-rebuild docker-dev docker-dev-down docker-ps compose
 
 COMPOSE := ./scripts/compose.sh
 COMPOSE_DEV := $(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml
@@ -20,6 +20,13 @@ help:
 	@echo "Docker (development — hot reload):"
 	@echo "  make docker-dev      Start postgres + API + frontend with live reload"
 	@echo "  make docker-dev-down Stop dev stack"
+	@echo ""
+	@echo "Local Node (API + frontend together):"
+	@echo "  make dev             Start backend :3001 + frontend :3000 (requires postgres)"
+	@echo "  npm run dev          Same as make dev"
+
+dev:
+	npm run dev
 
 compose:
 	@$(COMPOSE) version || true

@@ -149,6 +149,11 @@ export function MessagingDashboard({
 
   const courseRooms = conversations.filter((c) => c.type === 'COURSE_ROOM');
   const directChats = conversations.filter((c) => c.type === 'DIRECT');
+  const directOtherIds = useMemo(
+    () => new Set(directChats.map((c) => c.otherUser?.id).filter(Boolean) as string[]),
+    [directChats],
+  );
+  const newMessageContacts = contacts.filter((c) => !directOtherIds.has(c.id));
 
   useEffect(() => {
     const paramId = searchParams.get('conversation');
@@ -394,7 +399,7 @@ export function MessagingDashboard({
           </p>
           <ScrollArea className="max-h-36">
             <div className="space-y-0.5">
-              {contacts.slice(0, 12).map((c) => (
+              {newMessageContacts.slice(0, 12).map((c) => (
                 <button
                   key={c.id}
                   type="button"
@@ -468,7 +473,11 @@ export function MessagingDashboard({
               <div className="flex items-center gap-3 min-w-0">
                 <ConversationAvatar conversation={activeConversation} currentUserId={user?.id} />
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{activeConversation.title}</h3>
+                  <h3 className="font-semibold text-sm truncate">
+                    {activeConversation.type === 'DIRECT' && activeConversation.otherUser
+                      ? `${activeConversation.otherUser.firstName} ${activeConversation.otherUser.lastName}`
+                      : activeConversation.title}
+                  </h3>
                   <p className="text-xs text-muted-foreground truncate">
                     {activeConversation.type === 'COURSE_ROOM'
                       ? `${activeConversation.participants.length} members`
@@ -655,7 +664,9 @@ function ConversationRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1">
           <span className={cn('text-sm font-medium truncate', conversation.unreadCount > 0 && 'text-foreground')}>
-            {conversation.title}
+            {conversation.type === 'DIRECT' && other
+              ? `${other.firstName} ${other.lastName}`
+              : conversation.title}
           </span>
           {conversation.lastMessage && (
             <span className="text-[10px] text-muted-foreground shrink-0">

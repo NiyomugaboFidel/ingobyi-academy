@@ -121,6 +121,12 @@ export class CommunityController {
     return this.communityService.leaderboard();
   }
 
+  @Get('search')
+  @ApiOperation({ summary: 'Search learners by name or email' })
+  searchUsers(@Query('q') q: string, @Query('limit') limit?: string) {
+    return this.communityService.searchUsers(q, limit ? Number(limit) : 20);
+  }
+
   @Get(':userId/profile')
   @ApiOperation({ summary: 'Public learner profile' })
   profile(@Param('userId', ParseCuidPipe) userId: string) {

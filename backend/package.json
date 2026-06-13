@@ -24,7 +24,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:backfill-org": "ts-node prisma/scripts/backfill-default-org.ts"
+    "prisma:backfill-org": "ts-node prisma/scripts/backfill-default-org.ts",
+    "verify:integrations": "ts-node scripts/verify-integrations.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

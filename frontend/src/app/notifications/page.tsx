@@ -15,9 +15,13 @@ import { cn } from '@/lib/utils';
 
 const TYPE_ICONS: Record<string, typeof Bell> = {
   COURSE: BookOpen,
+  COURSE_APPROVED: BookOpen,
   ACHIEVEMENT: Trophy,
+  ACHIEVEMENT_EARNED: Trophy,
   MESSAGE: MessageSquare,
+  MESSAGE_RECEIVED: MessageSquare,
   ANNOUNCEMENT: Megaphone,
+  ENROLLMENT: BookOpen,
   SYSTEM: Info,
 };
 

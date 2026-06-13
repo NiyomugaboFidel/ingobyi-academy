@@ -13,7 +13,7 @@ import { getCourseById } from '@/lib/api/courses';
 import { getCourseProgress, markLessonComplete, sendHeartbeat } from '@/lib/api/progress';
 import { QuizLesson } from '@/components/learning/quiz-lesson';
 import { AssignmentLesson } from '@/components/learning/assignment-lesson';
-import { LessonVideoPlayer } from '@/components/learning/lesson-video-player';
+import { LessonVideoPlayer, type LessonVideoView } from '@/components/learning/lesson-video-player';
 import { HtmlContent } from '@/components/editor/html-content';
 import { BRAND_LOGO_SRC } from '@/components/brand-logo';
 import { BookmarkButton } from '@/components/bookmark-button';
@@ -98,11 +98,11 @@ function StudentLearnInner() {
   const [progress, setProgress] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [cinemaMode, setCinemaMode] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [learningMinutes, setLearningMinutes] = useState(0);
   const watchedSecRef = useRef(0);
 
-  // Flatten all lessons for next/prev navigation
   const allLessons = course?.modules.flatMap((m) => m.lessons.sort((a, b) => a.order - b.order)).sort((a, b) => a.order - b.order) ?? [];
   const currentIdx = allLessons.findIndex((l) => l.id === currentLesson?.id);
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
@@ -130,8 +130,8 @@ function StudentLearnInner() {
     try {
       const data = await getCourseProgress(courseId, accessToken);
       const map: Record<string, boolean> = {};
-      data.lessonProgress.forEach((p) => {
-        map[p.lessonId] = p.isCompleted;
+      data.lessonProgress.forEach((p: LessonProgress) => {
+        map[p.lessonId] = p.completed;
       });
       setProgress(map);
       setLearningMinutes(data.learningMinutes);
@@ -157,6 +157,18 @@ function StudentLearnInner() {
       setLearningMinutes((m) => Math.max(m, Math.round(sec / 60)));
     }
   }, [currentLesson, accessToken]);
+
+  useEffect(() => {
+    if (currentLesson?.type !== 'video' || !currentLesson.videoUrl) {
+      setCinemaMode(false);
+    }
+  }, [currentLesson]);
+
+  const handleVideoViewChange = useCallback((view: LessonVideoView) => {
+    const playing = view === 'playing';
+    setCinemaMode(playing);
+    if (playing) setSidebarOpen(false);
+  }, []);
 
   async function markComplete(lessonId: string) {
     if (!accessToken || completing) return;
@@ -212,7 +224,6 @@ function StudentLearnInner() {
           </p>
         </div>
 
-        {/* Progress */}
         <div className="hidden items-center gap-2 sm:flex">
           <div className="h-2 w-32 overflow-hidden rounded-full bg-white/15">
             <div
@@ -235,25 +246,51 @@ function StudentLearnInner() {
       </header>
 
       {/* Body */}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+
         {/* Main content area */}
-        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-white">
+        <main className={cn(
+          'flex min-h-0 min-w-0 flex-1 flex-col bg-black',
+          cinemaMode ? 'overflow-hidden' : 'overflow-y-auto bg-white',
+        )}>
           {currentLesson ? (
             <>
-              {/* Video / text content */}
+              {/* ── VIDEO LESSON ── */}
               {currentLesson.type === 'video' && currentLesson.videoUrl ? (
-                <LessonVideoPlayer
-                  videoUrl={currentLesson.videoUrl}
-                  title={currentLesson.title}
-                  onWatchProgress={handleWatchProgress}
-                />
+                <>
+                  {/* Video wrapper — fills all available width, 16:9 height, or full screen in cinema */}
+                  <div
+                    className={cn(
+                      'relative w-full shrink-0 bg-black',
+                      cinemaMode
+                        ? 'h-[calc(100dvh-3.5rem)]'
+                        : 'aspect-video',
+                    )}
+                    style={!cinemaMode ? { maxHeight: 'calc(100vw * 9 / 16)' } : undefined}
+                  >
+                    <LessonVideoPlayer
+                      key={currentLesson.id}
+                      videoUrl={currentLesson.videoUrl}
+                      title={currentLesson.title}
+                      coverImageUrl={currentLesson.coverImageUrl ?? course?.thumbnailUrl ?? undefined}
+                      onWatchProgress={handleWatchProgress}
+                      onViewChange={handleVideoViewChange}
+                      // Force the player to fill the wrapper completely
+                      className="absolute inset-0 h-full w-full"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                    />
+                  </div>
+                </>
               ) : (
+                /* ── NON-VIDEO LESSON BANNER ── */
                 <div className="relative aspect-[21/9] w-full min-h-[200px] max-h-[400px] overflow-hidden bg-brand-green">
                   <div className="absolute inset-0 bg-gradient-to-br from-brand-green via-brand-green-dark to-brand-green" />
                   <img
                     src={currentLesson.coverImageUrl || BRAND_LOGO_SRC}
                     alt=""
-                    className={`absolute inset-0 h-full w-full object-contain p-8 ${currentLesson.coverImageUrl ? 'object-cover p-0 opacity-80' : 'opacity-90'}`}
+                    className={`absolute inset-0 h-full w-full object-contain p-8 ${
+                      currentLesson.coverImageUrl ? 'object-cover p-0 opacity-80' : 'opacity-90'
+                    }`}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/45 to-black/25" />
                   <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10">
@@ -267,106 +304,106 @@ function StudentLearnInner() {
                 </div>
               )}
 
-              {/* Lesson body */}
-              <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-                {/* Nav */}
-                <div className="mb-6 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-green/60">
-                      Lesson {currentIdx + 1} of {allLessons.length}
-                    </p>
-                    <h1 className="mt-1 text-2xl font-extrabold text-brand-ink">{currentLesson.title}</h1>
-                  </div>
-                  {progress[currentLesson.id] && (
-                    <span className="flex items-center gap-1.5 rounded-full bg-brand-mint/25 px-3 py-1.5 text-xs font-bold text-brand-green">
-                      <Check className="h-3.5 w-3.5" />
-                      Completed
-                    </span>
-                  )}
-                </div>
-
-                {currentLesson.description && (
-                  <div className="mb-6 rounded-lg border border-brand-green/8 bg-brand-mint-wash p-4">
-                    <HtmlContent html={currentLesson.description} className="text-sm" />
-                  </div>
-                )}
-
-                {currentLesson.type === 'quiz' && (
-                  <QuizLesson lessonId={currentLesson.id} onComplete={() => markComplete(currentLesson.id)} />
-                )}
-
-                {currentLesson.type === 'assignment' && (
-                  <AssignmentLesson
-                    lessonId={currentLesson.id}
-                    onComplete={() => markComplete(currentLesson.id)}
-                  />
-                )}
-
-                {currentLesson.type === 'text' && currentLesson.content && (
-                  <HtmlContent html={currentLesson.content} className="leading-relaxed" />
-                )}
-
-                {!currentLesson.content && currentLesson.type === 'text' && (
-                  <div className="rounded-xl border border-brand-green/8 bg-brand-mint-wash p-8 text-center">
-                    <BookOpen className="mx-auto h-10 w-10 text-brand-green/30" />
-                    <p className="mt-3 text-sm text-brand-ink/55">Lesson content will appear here.</p>
-                  </div>
-                )}
-
-                {/* Complete + navigate */}
-                <div className="mt-10 flex flex-col gap-4 border-t border-brand-green/8 pt-8 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-3">
-                    {prevLesson && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setCurrentLesson(prevLesson)}
-                        className="gap-1.5 border-brand-green/20 text-brand-green"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        Previous
-                      </Button>
-                    )}
-                    {nextLesson && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setCurrentLesson(nextLesson)}
-                        className="gap-1.5 border-brand-green/20 text-brand-green"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+              {/* ── LESSON BODY (hidden in cinema mode) ── */}
+              {!cinemaMode && (
+                <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-green/60">
+                        Lesson {currentIdx + 1} of {allLessons.length}
+                      </p>
+                      <h1 className="mt-1 text-2xl font-extrabold text-brand-ink">{currentLesson.title}</h1>
+                    </div>
+                    {progress[currentLesson.id] && (
+                      <span className="flex items-center gap-1.5 rounded-full bg-brand-mint/25 px-3 py-1.5 text-xs font-bold text-brand-green">
+                        <Check className="h-3.5 w-3.5" />
+                        Completed
+                      </span>
                     )}
                   </div>
 
-                  <ReportDialog targetType="CONTENT" targetLabel="lesson" metadata={{ lessonId: currentLesson.id, courseId }} />
-
-                  {!progress[currentLesson.id] && currentLesson.type !== 'quiz' && currentLesson.type !== 'assignment' ? (
-                    <Button
-                      type="button"
-                      onClick={() => markComplete(currentLesson.id)}
-                      disabled={completing}
-                      className="rounded-full bg-brand-green px-6 font-bold hover:bg-brand-green-dark"
-                    >
-                      {completing ? 'Saving…' : 'Mark as complete'}
-                    </Button>
-                  ) : progress[currentLesson.id] && nextLesson ? (
-                    <Button
-                      type="button"
-                      onClick={() => setCurrentLesson(nextLesson)}
-                      className="rounded-full bg-brand-green px-6 font-bold hover:bg-brand-green-dark"
-                    >
-                      Continue →
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2 rounded-full bg-brand-mint/20 px-4 py-2">
-                      <Award className="h-5 w-5 text-brand-green" />
-                      <span className="text-sm font-bold text-brand-green">Course complete</span>
+                  {currentLesson.description && (
+                    <div className="mb-6 rounded-lg border border-brand-green/8 bg-brand-mint-wash p-4">
+                      <HtmlContent html={currentLesson.description} className="text-sm" />
                     </div>
                   )}
+
+                  {currentLesson.type === 'quiz' && (
+                    <QuizLesson lessonId={currentLesson.id} onComplete={() => markComplete(currentLesson.id)} />
+                  )}
+
+                  {currentLesson.type === 'assignment' && (
+                    <AssignmentLesson
+                      lessonId={currentLesson.id}
+                      onComplete={() => markComplete(currentLesson.id)}
+                    />
+                  )}
+
+                  {currentLesson.type === 'text' && currentLesson.content && (
+                    <HtmlContent html={currentLesson.content} className="leading-relaxed" />
+                  )}
+
+                  {!currentLesson.content && currentLesson.type === 'text' && (
+                    <div className="rounded-xl border border-brand-green/8 bg-brand-mint-wash p-8 text-center">
+                      <BookOpen className="mx-auto h-10 w-10 text-brand-green/30" />
+                      <p className="mt-3 text-sm text-brand-ink/55">Lesson content will appear here.</p>
+                    </div>
+                  )}
+
+                  <div className="mt-10 flex flex-col gap-4 border-t border-brand-green/8 pt-8 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex gap-3">
+                      {prevLesson && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setCurrentLesson(prevLesson)}
+                          className="gap-1.5 border-brand-green/20 text-brand-green"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                      )}
+                      {nextLesson && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setCurrentLesson(nextLesson)}
+                          className="gap-1.5 border-brand-green/20 text-brand-green"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <ReportDialog targetType="CONTENT" targetLabel="lesson" metadata={{ lessonId: currentLesson.id, courseId }} />
+
+                    {!progress[currentLesson.id] && currentLesson.type !== 'quiz' && currentLesson.type !== 'assignment' ? (
+                      <Button
+                        type="button"
+                        onClick={() => markComplete(currentLesson.id)}
+                        disabled={completing}
+                        className="rounded-full bg-brand-green px-6 font-bold hover:bg-brand-green-dark"
+                      >
+                        {completing ? 'Saving…' : 'Mark as complete'}
+                      </Button>
+                    ) : progress[currentLesson.id] && nextLesson ? (
+                      <Button
+                        type="button"
+                        onClick={() => setCurrentLesson(nextLesson)}
+                        className="rounded-full bg-brand-green px-6 font-bold hover:bg-brand-green-dark"
+                      >
+                        Continue →
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-full bg-brand-mint/20 px-4 py-2">
+                        <Award className="h-5 w-5 text-brand-green" />
+                        <span className="text-sm font-bold text-brand-green">Course complete</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
@@ -376,12 +413,11 @@ function StudentLearnInner() {
           )}
         </main>
 
-        {/* Sidebar - curriculum */}
+        {/* Sidebar */}
         {sidebarOpen && (
           <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-brand-green text-white md:flex">
             <div className="border-b border-white/10 px-4 py-4">
               <p className="text-xs font-bold uppercase tracking-wider text-white/60">Course curriculum</p>
-              {/* Progress bar */}
               <div className="mt-3 flex items-center gap-2">
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
                   <div className="h-full rounded-full bg-brand-mint transition-all" style={{ width: `${progressPercent}%` }} />

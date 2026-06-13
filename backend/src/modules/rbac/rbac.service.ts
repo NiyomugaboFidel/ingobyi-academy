@@ -15,13 +15,10 @@ export class RbacService implements OnModuleInit {
   }
 
   async seedDefaultPermissions(): Promise<void> {
-    for (const key of PERMISSION_KEYS) {
-      await this.prisma.permission.upsert({
-        where: { key },
-        create: { key },
-        update: {},
-      });
-    }
+    await this.prisma.permission.createMany({
+      data: PERMISSION_KEYS.map((key) => ({ key })),
+      skipDuplicates: true,
+    });
 
     const permissions = await this.prisma.permission.findMany();
     const byKey = new Map(permissions.map((p) => [p.key, p.id]));

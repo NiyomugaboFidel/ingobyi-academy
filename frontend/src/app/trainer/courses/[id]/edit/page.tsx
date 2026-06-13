@@ -198,23 +198,74 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const status = course.status ?? 'DRAFT';
+  const isPublished = status === 'PUBLISHED';
+  const isPending = status === 'PENDING_REVIEW';
+
   return (
     <DashboardShell allowedRoles={['TRAINER', 'SUPERADMIN']}>
       <PageHeader
         title={course.title}
-        description={`Status: ${course.status ?? 'DRAFT'}`}
+        description={`Status: ${status.replace('_', ' ')}`}
         breadcrumbs={[
           { label: 'Trainer', href: '/trainer/dashboard' },
           { label: 'Courses', href: '/trainer/courses' },
           { label: 'Edit' },
         ]}
         actions={
-          <div className="flex gap-2">
-            <Button asChild size="sm" variant="outline"><Link href={`/catalog/${course.slug}`}>Preview</Link></Button>
-            <Button size="sm" onClick={requestPublish} className="bg-brand-green hover:bg-brand-green-dark">Request publish</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/courses/preview/${course.slug}`}>Preview</Link>
+            </Button>
+            {isPublished && (
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/catalog/${course.slug}`}>View live catalog</Link>
+              </Button>
+            )}
+            {!isPublished && !isPending && (
+              <Button size="sm" onClick={requestPublish} className="bg-brand-green hover:bg-brand-green-dark">
+                Submit for review
+              </Button>
+            )}
+            {isPending && (
+              <Button size="sm" disabled variant="secondary">
+                Awaiting approval
+              </Button>
+            )}
           </div>
         }
       />
+
+      <div
+        className={cn(
+          'mb-6 rounded-lg border px-4 py-3 text-sm',
+          isPublished && 'border-green-200 bg-green-50 text-green-900',
+          isPending && 'border-amber-200 bg-amber-50 text-amber-900',
+          !isPublished && !isPending && 'border-brand-green/15 bg-brand-mint-wash text-brand-ink',
+        )}
+      >
+        {isPublished && (
+          <p>
+            <strong>Published.</strong> Your course is live at{' '}
+            <Link href={`/catalog/${course.slug}`} className="font-semibold text-brand-green underline">
+              /catalog/{course.slug}
+            </Link>
+            . Edit details or curriculum anytime — changes appear after save.
+          </p>
+        )}
+        {isPending && (
+          <p>
+            <strong>Pending review.</strong> An organization admin or superadmin must approve before it appears in
+            the catalog. You can still improve content below while you wait.
+          </p>
+        )}
+        {!isPublished && !isPending && (
+          <p>
+            <strong>Improve your course:</strong> fill in title, description, thumbnail, then add modules and
+            lessons under <strong>Curriculum</strong>. When ready, click <strong>Submit for review</strong>.
+          </p>
+        )}
+      </div>
 
       <div className="mb-4 flex gap-2 border-b border-border">
         {(['details', 'curriculum'] as const).map((t) => (

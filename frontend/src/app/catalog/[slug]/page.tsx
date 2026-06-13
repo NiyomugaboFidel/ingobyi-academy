@@ -1,5 +1,4 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ExploreNav } from '@/components/layout/explore-nav';
 import { getCourseBySlug } from '@/lib/api/catalog';
@@ -29,7 +28,8 @@ export default async function CourseDetailPage({
   try {
     course = await getCourseBySlug(slug);
   } catch {
-    notFound();
+    const { CatalogCourseUnavailable } = await import('@/components/courses/catalog-course-unavailable');
+    return <CatalogCourseUnavailable slug={slug} />;
   }
 
   const levelLabel = LEVEL_LABELS[course.level] ?? course.level;

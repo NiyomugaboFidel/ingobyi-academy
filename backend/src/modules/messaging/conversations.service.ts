@@ -175,9 +175,11 @@ export class ConversationsService {
       archivedOnly,
     );
 
-    const direct = participants
-      .filter((p) => p.conversation.type === ConversationType.DIRECT)
-      .map((p) => this.formatConversation(p.conversation, user.userId, p));
+    const direct = this.dedupeDirectConversations(
+      participants
+        .filter((p) => p.conversation.type === ConversationType.DIRECT)
+        .map((p) => this.formatConversation(p.conversation, user.userId, p)),
+    );
 
     const courseRooms = courseConversations.map((c) =>
       this.formatConversation(
@@ -363,6 +365,28 @@ export class ConversationsService {
       _sum: { unreadCount: true },
     });
     return result._sum.unreadCount ?? 0;
+  }
+
+  private dedupeDirectConversations<
+    T extends { id: string; otherUser?: { id: string } | null; updatedAt: Date; lastMessage?: { createdAt: Date } | null },
+  >(conversations: T[]): T[] {
+    const byOther = new Map<string, T>();
+    for (const conv of conversations) {
+      const key = conv.otherUser?.id ?? conv.id;
+      const existing = byOther.get(key);
+      if (!existing) {
+        byOther.set(key, conv);
+        continue;
+      }
+      const convTime = new Date(
+        conv.lastMessage?.createdAt ?? conv.updatedAt,
+      ).getTime();
+      const existingTime = new Date(
+        existing.lastMessage?.createdAt ?? existing.updatedAt,
+      ).getTime();
+      if (convTime > existingTime) byOther.set(key, conv);
+    }
+    return Array.from(byOther.values());
   }
 
   private formatConversation(

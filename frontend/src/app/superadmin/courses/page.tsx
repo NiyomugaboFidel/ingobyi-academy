@@ -1,14 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BookOpen, Check, Eye, ExternalLink, Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { Button } from '@/components/ui/button';
 import { listCourses } from '@/lib/api/courses';
+import { approveCourse, rejectCourse } from '@/lib/api/superadmin';
 import { getErrorMessage } from '@/lib/api/errors';
 import type { Course } from '@/lib/api/types';
 import { useAuthStore } from '@/lib/auth/store';
@@ -22,6 +26,8 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function SuperadminCoursesPage() {
   const token = useAuthStore((s) => s.accessToken)!;
+  const queryClient = useQueryClient();
+  const [actingId, setActingId] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['superadmin', 'courses'],
@@ -30,23 +36,38 @@ export default function SuperadminCoursesPage() {
   });
 
   const rows = data?.data ?? [];
+  const pendingCount = rows.filter((c) => c.status === 'PENDING_REVIEW').length;
+
+  async function handleAction(id: string, action: 'approve' | 'reject') {
+    setActingId(id);
+    try {
+      if (action === 'approve') {
+        await approveCourse(id, token);
+        toast.success('Course approved and published');
+      } else {
+        await rejectCourse(id, token);
+        toast.success('Course returned to draft');
+      }
+      await queryClient.invalidateQueries({ queryKey: ['superadmin', 'courses'] });
+      await queryClient.invalidateQueries({ queryKey: ['superadmin', 'courses-pending'] });
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setActingId(null);
+    }
+  }
 
   const columns: DataColumn<Course>[] = [
     {
       id: 'title',
       header: 'Course',
       accessor: (r) => (
-        <Link href={`/catalog/${r.slug}`} className="font-medium text-brand-green hover:underline">
-          {r.title}
-        </Link>
+        <div>
+          <p className="font-medium text-brand-ink">{r.title}</p>
+          <p className="text-[11px] text-brand-muted">{r.org?.name ?? '—'}</p>
+        </div>
       ),
       sortValue: (r) => r.title,
-    },
-    {
-      id: 'org',
-      header: 'Organization',
-      accessor: (r) => r.org?.name ?? '—',
-      sortValue: (r) => r.org?.name ?? '',
     },
     {
       id: 'category',
@@ -71,63 +92,112 @@ export default function SuperadminCoursesPage() {
       sortValue: (r) => r.status ?? '',
     },
     {
-      id: 'type',
-      header: 'Type',
-      accessor: (r) => r.type,
-      sortValue: (r) => r.type,
-    },
-    {
-      id: 'view',
-      header: '',
+      id: 'actions',
+      header: 'Review & approve',
       accessor: (r) => (
-        <Link href={`/catalog/${r.slug}`} className="inline-flex items-center gap-1 text-[11px] text-brand-green hover:underline">
-          Open <ExternalLink className="h-3 w-3" />
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Button asChild size="sm" variant="outline" className="h-8 gap-1 text-[11px]">
+            <Link href={`/courses/preview/${r.slug}`}>
+              <Eye className="h-3.5 w-3.5" /> Preview
+            </Link>
+          </Button>
+          {r.status === 'PENDING_REVIEW' && (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                disabled={actingId === r.id}
+                className="h-8 gap-1 bg-brand-green text-[11px] hover:bg-brand-green-dark"
+                onClick={() => handleAction(r.id, 'approve')}
+              >
+                <Check className="h-3.5 w-3.5" /> Approve
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={actingId === r.id}
+                className="h-8 gap-1 border-red-200 text-[11px] text-red-700 hover:bg-red-50"
+                onClick={() => handleAction(r.id, 'reject')}
+              >
+                <X className="h-3.5 w-3.5" /> Reject
+              </Button>
+            </>
+          )}
+          {r.status === 'PUBLISHED' ? (
+            <Button asChild size="sm" variant="ghost" className="h-8 gap-1 text-[11px] text-brand-green">
+              <Link href={`/catalog/${r.slug}`}>
+                Live <ExternalLink className="h-3 w-3" />
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="ghost" className="h-8 gap-1 text-[11px] text-brand-muted">
+              <Link href={`/catalog/${r.slug}`}>Catalog link</Link>
+            </Button>
+          )}
+        </div>
       ),
+      filterable: false,
     },
   ];
 
   return (
     <DashboardShell allowedRoles={['SUPERADMIN']}>
-      
-        <PageHeader
-          title="All courses"
-          description={`Platform-wide course registry — ${data?.meta.total ?? rows.length} total.`}
-          breadcrumbs={[
-            { label: 'Superadmin', href: '/superadmin/dashboard' },
-            { label: 'Courses' },
-          ]}
+      <PageHeader
+        title="All courses"
+        description={
+          pendingCount > 0
+            ? `${data?.meta.total ?? rows.length} courses · ${pendingCount} awaiting approval`
+            : `Platform-wide course registry — ${data?.meta.total ?? rows.length} total.`
+        }
+        breadcrumbs={[
+          { label: 'Superadmin', href: '/superadmin/dashboard' },
+          { label: 'Courses' },
+        ]}
+        actions={
+          pendingCount > 0 ? (
+            <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+              <Link href="/superadmin/course-approvals">Approval queue ({pendingCount})</Link>
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {pendingCount > 0 && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {pendingCount} course{pendingCount === 1 ? '' : 's'} need review. Open <strong>Preview</strong>, then
+          click <strong>Approve</strong> to publish to the public catalog.
+        </p>
+      )}
+
+      {error && (
+        <ApiErrorBanner
+          message={getErrorMessage(error)}
+          onRetry={() => refetch()}
+          retrying={isLoading}
         />
+      )}
 
-        {error && (
-          <ApiErrorBanner
-            message={getErrorMessage(error)}
-            onRetry={() => refetch()}
-            retrying={isLoading}
-          />
-        )}
-
-        {isLoading ? (
-          <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
-        ) : rows.length === 0 && !error ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No courses yet"
-            description="Courses created by trainers and organizations will appear here."
-            primaryAction={{ label: 'View catalog', href: '/catalog' }}
-            secondaryAction={{ label: 'Pending approvals', href: '/superadmin/course-approvals' }}
-          />
-        ) : (
-          <DataTable
-            data={rows}
-            columns={columns}
-            searchPlaceholder="Search courses…"
-            searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
-            exportFilename="all-courses.csv"
-            pageSize={15}
-          />
-        )}
-      
+      {isLoading ? (
+        <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
+      ) : rows.length === 0 && !error ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No courses yet"
+          description="Courses created by trainers and organizations will appear here."
+          primaryAction={{ label: 'View catalog', href: '/catalog' }}
+          secondaryAction={{ label: 'Pending approvals', href: '/superadmin/course-approvals' }}
+        />
+      ) : (
+        <DataTable
+          data={rows}
+          columns={columns}
+          searchPlaceholder="Search courses…"
+          searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
+          exportFilename="all-courses.csv"
+          pageSize={15}
+        />
+      )}
     </DashboardShell>
   );
 }

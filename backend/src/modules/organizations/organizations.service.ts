@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditAction, MembershipStatus, UserRole } from '@prisma/client';
+import { AuditAction, MembershipStatus, NotificationType, UserRole } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import {
@@ -17,6 +17,7 @@ import { sanitizeUser } from '../../common/utils/sanitize-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../../shared/email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateJoinRequestDto } from './dto/create-join-request.dto';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -35,6 +36,7 @@ export class OrganizationsService {
     private readonly audit: AuditService,
     private readonly email: EmailService,
     private readonly rbac: RbacService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(userId: string, dto: CreateOrganizationDto) {
@@ -342,7 +344,29 @@ export class OrganizationsService {
         org.name,
         requesterName,
       );
+      void this.notifications.create(
+        admin.userId,
+        NotificationType.ANNOUNCEMENT,
+        `Join request — ${org.name}`,
+        `${requesterName} requested to join as ${requestedRole.toLowerCase()}`,
+        '/admin/join-requests',
+      );
     }
+
+    const superadmins = await this.prisma.user.findMany({
+      where: { platformRole: UserRole.SUPERADMIN, isActive: true },
+      select: { id: true, email: true },
+    });
+    for (const sa of superadmins) {
+      void this.notifications.create(
+        sa.id,
+        NotificationType.ANNOUNCEMENT,
+        `Org join request — ${org.name}`,
+        `${requesterName} requested ${requestedRole.toLowerCase()} access`,
+        '/superadmin/join-requests',
+      );
+    }
+
     return request;
   }
 
@@ -482,6 +506,17 @@ export class OrganizationsService {
         requester.email,
         org?.name ?? 'Organization',
         dto.status === 'APPROVED',
+      );
+      void this.notifications.create(
+        request.userId,
+        NotificationType.ANNOUNCEMENT,
+        dto.status === 'APPROVED'
+          ? `Welcome to ${org?.name ?? 'organization'}`
+          : `Join request update — ${org?.name ?? 'organization'}`,
+        dto.status === 'APPROVED'
+          ? 'Your membership request was approved. Switch workspace from your dashboard.'
+          : 'Your membership request was declined.',
+        dto.status === 'APPROVED' ? '/onboarding' : '/onboarding',
       );
     }
     return { message: `Request ${dto.status.toLowerCase()}` };

@@ -47,6 +47,23 @@ export class CoursesController {
     return this.coursesService.list(user, pagination);
   }
 
+  @Get('pending')
+  @Roles(UserRole.ADMIN, UserRole.TRAINER, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'List courses pending publication review' })
+  listPending(@CurrentUser() user: AuthenticatedUser) {
+    return this.coursesService.listPending(user);
+  }
+
+  @Get('preview/:slug')
+  @Roles(UserRole.ADMIN, UserRole.TRAINER, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Preview unpublished course by slug' })
+  previewBySlug(
+    @Param('slug') slug: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.coursesService.getPreviewBySlug(slug, user);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get course by ID' })
   getById(
@@ -81,23 +98,23 @@ export class CoursesController {
   }
 
   @Post(':id/approve')
-  @Roles(UserRole.SUPERADMIN)
-  @ApiOperation({ summary: 'Approve course' })
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Approve course for publication' })
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
   ) {
-    return this.coursesService.approve(id, user.userId);
+    return this.coursesService.approve(id, user);
   }
 
   @Post(':id/reject')
-  @Roles(UserRole.SUPERADMIN)
-  @ApiOperation({ summary: 'Reject course' })
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Reject course publication request' })
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
   ) {
-    return this.coursesService.reject(id, user.userId);
+    return this.coursesService.reject(id, user);
   }
 
   @Get(':id/students')

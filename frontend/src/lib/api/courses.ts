@@ -117,6 +117,22 @@ export function publishCourse(id: string, token: string) {
   return apiRequest(`/courses/${id}/publish`, { method: 'POST', token });
 }
 
+export function listPendingCourses(token: string) {
+  return apiRequest<Course[]>('/courses/pending', { token });
+}
+
+export function getCoursePreviewBySlug(slug: string, token: string) {
+  return apiRequest<CourseDetail>(`/courses/preview/${slug}`, { token });
+}
+
+export function approveCourse(id: string, token: string) {
+  return apiRequest<Course>(`/courses/${id}/approve`, { method: 'POST', token });
+}
+
+export function rejectCourse(id: string, token: string) {
+  return apiRequest<Course>(`/courses/${id}/reject`, { method: 'POST', token });
+}
+
 /** Aggregate students across all trainer courses. */
 export async function listTrainerStudents(token: string) {
   const coursesPage = await listCourses(token, 1, 100);

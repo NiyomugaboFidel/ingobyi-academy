@@ -91,32 +91,32 @@ export default function SuperadminCourseApprovalsPage() {
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: 'Review & approve',
       accessor: (r) => (
-        <div className="flex items-center justify-end gap-1">
-          <Button asChild size="sm" variant="ghost" className="h-7 w-7 p-0">
-            <Link href={`/catalog/${r.slug}`} title="Preview">
-              <Eye className="h-3.5 w-3.5" />
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Button asChild size="sm" variant="outline" className="h-8 gap-1 text-[11px]">
+            <Link href={`/courses/preview/${r.slug}`}>
+              <Eye className="h-3.5 w-3.5" /> Preview
             </Link>
           </Button>
           <Button
             type="button"
             size="sm"
             disabled={actingId === r.id}
-            className="h-7 gap-1 rounded bg-brand-green text-[11px] hover:bg-brand-green-dark"
+            className="h-8 gap-1 bg-brand-green text-[11px] hover:bg-brand-green-dark"
             onClick={() => handleAction(r.id, 'approve')}
           >
-            <Check className="h-3 w-3" /> Approve
+            <Check className="h-3.5 w-3.5" /> Approve
           </Button>
           <Button
             type="button"
             size="sm"
             variant="outline"
             disabled={actingId === r.id}
-            className="h-7 gap-1 rounded border-red-200 text-[11px] text-red-700 hover:bg-red-50"
+            className="h-8 gap-1 border-red-200 text-[11px] text-red-700 hover:bg-red-50"
             onClick={() => handleAction(r.id, 'reject')}
           >
-            <X className="h-3 w-3" /> Reject
+            <X className="h-3.5 w-3.5" /> Reject
           </Button>
         </div>
       ),

@@ -269,7 +269,7 @@ async function main(): Promise<void> {
               {
                 title: 'Welcome Video',
                 type: LessonType.VIDEO,
-                videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
                 order: 1,
                 isPublished: statuses[c] === CourseStatus.PUBLISHED,
                 isFree: true,
