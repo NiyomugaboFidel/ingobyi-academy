@@ -1,12 +1,31 @@
 import { apiRequest } from './client';
-import type { Paginated } from './types';
+import type { Paginated, UserRole } from './types';
+import type { UnifiedAchievement } from './achievements';
 import { clampLimit, clampPage } from './pagination';
+
+export type CommunityUserStats = {
+  coursesCompleted: number;
+  certificatesEarned: number;
+  achievementPoints: number;
+  reviewsWritten: number;
+  trainerRating: number | null;
+  trainerReviewCount: number;
+};
 
 export type CommunityAuthor = {
   id: string;
   firstName: string;
   lastName: string;
   avatarUrl?: string | null;
+  bio?: string | null;
+  platformRole?: UserRole;
+  displayRole?: UserRole;
+  isVerified?: boolean;
+  stats?: CommunityUserStats | null;
+  isFollowing?: boolean;
+  followerCount?: number;
+  mutualCount?: number;
+  suggestionReason?: string;
 };
 
 export type CommunityPost = {
@@ -31,13 +50,24 @@ export type CommunityProfile = {
   lastName: string;
   avatarUrl?: string | null;
   bio?: string | null;
+  country?: string | null;
+  createdAt?: string;
+  platformRole?: UserRole;
+  displayRole?: UserRole;
+  isVerified?: boolean;
+  stats?: CommunityUserStats;
   posts: CommunityPost[];
-  achievements: Array<{ id: string; earnedAt: string; definition: { name: string } }>;
+  achievements: UnifiedAchievement[];
   followers: Array<{ followerId: string }>;
   following: Array<{ followingId: string }>;
+  followerUsers?: CommunityAuthor[];
+  followingUsers?: CommunityAuthor[];
+  followerCount?: number;
+  followingCount?: number;
+  postCount?: number;
 };
 
-export function getCommunityFeed(token: string, params: { orgId?: string; page?: number; limit?: number } = {}) {
+export function getCommunityFeed(token?: string | null, params: { orgId?: string; page?: number; limit?: number } = {}) {
   const search = new URLSearchParams();
   if (params.orgId) search.set('orgId', params.orgId);
   search.set('page', String(clampPage(params.page)));
@@ -73,14 +103,15 @@ export function toggleFollow(userId: string, token: string) {
   });
 }
 
-export function getCommunityLeaderboard(token: string) {
+export function getCommunityLeaderboard(token?: string | null) {
   return apiRequest<Array<{ user?: CommunityAuthor; points: number }>>('/community/leaderboard', { token });
 }
 
-export function getCommunityProfile(userId: string, token: string) {
+export function getCommunityProfile(userId: string, token?: string | null) {
   return apiRequest<CommunityProfile>(`/community/${userId}/profile`, { token });
 }
 
+<<<<<<< HEAD
 export function searchCommunityUsers(token: string, q: string, limit = 20) {
   const qs = new URLSearchParams({ q, limit: String(limit) });
   return apiRequest<CommunityAuthor[]>(`/community/search?${qs}`, { token });
@@ -89,6 +120,33 @@ export function searchCommunityUsers(token: string, q: string, limit = 20) {
 export function sharePostOnLinkedIn(postUrl: string, text: string) {
   const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}&summary=${encodeURIComponent(text)}`;
   window.open(url, '_blank', 'noopener,noreferrer');
+=======
+export function getCommunityFollowers(userId: string, token?: string | null, page = 1, limit = 20) {
+  const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return apiRequest<Paginated<CommunityAuthor>>(`/community/${userId}/followers?${qs}`, { token });
+}
+
+export function getCommunityFollowing(userId: string, token?: string | null, page = 1, limit = 20) {
+  const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return apiRequest<Paginated<CommunityAuthor>>(`/community/${userId}/following?${qs}`, { token });
+}
+
+export function searchCommunityPeople(token: string, q: string, page = 1, limit = 20) {
+  const qs = new URLSearchParams({
+    q,
+    page: String(page),
+    limit: String(limit),
+  });
+  return apiRequest<Paginated<CommunityAuthor>>(`/community/people/search?${qs}`, { token });
+}
+
+export function getPeopleYouMayKnow(token: string) {
+  return apiRequest<CommunityAuthor[]>('/community/people/suggestions', { token });
+}
+
+export function getPopularCommunityPeople(token?: string | null) {
+  return apiRequest<CommunityAuthor[]>('/community/people/popular', { token });
+>>>>>>> 0e94140 (add cetificate)
 }
 
 export function deleteCommunityPost(postId: string, token: string) {

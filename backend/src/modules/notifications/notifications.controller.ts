@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/interfaces/request-with-user.interface';
 import { ParseCuidPipe } from '../../common/pipes/parse-cuid.pipe';
+import { NotificationsListQueryDto } from './dto/notifications-list-query.dto';
 import { NotificationsService } from './notifications.service';
 
 @ApiTags('Notifications')
@@ -14,9 +15,13 @@ export class NotificationsController {
   @ApiOperation({ summary: 'List notifications' })
   list(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('unread') unread?: string,
+    @Query() query: NotificationsListQueryDto,
   ) {
-    return this.notificationsService.list(user.userId, unread === 'true');
+    return this.notificationsService.list(
+      user.userId,
+      query,
+      query.unread === true,
+    );
   }
 
   @Patch(':id/read')

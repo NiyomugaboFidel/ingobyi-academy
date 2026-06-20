@@ -13,6 +13,7 @@ import { myEnrollments } from '@/lib/api/enrollments';
 import { getMyAchievements } from '@/lib/api/achievements';
 import { getCourseProgress } from '@/lib/api/progress';
 import { getCommunityFeed } from '@/lib/api/community';
+import { learningKeys } from '@/lib/query/learning';
 import { useAuthStore } from '@/lib/auth/store';
 
 export default function StudentDashboardPage() {
@@ -20,15 +21,17 @@ export default function StudentDashboardPage() {
   const user = useAuthStore((s) => s.user);
 
   const { data: enrollments = [] } = useQuery({
-    queryKey: ['enrollments', 'my'],
+    queryKey: learningKeys.myEnrollments(),
     queryFn: () => myEnrollments(token),
     enabled: !!token,
+    refetchOnWindowFocus: true,
   });
 
   const { data: achievements = [] } = useQuery({
-    queryKey: ['achievements', 'mine'],
+    queryKey: learningKeys.myAchievements(),
     queryFn: () => getMyAchievements(token),
     enabled: !!token,
+    refetchOnWindowFocus: true,
   });
 
   const { data: progressMap = {} } = useQuery({
@@ -48,6 +51,7 @@ export default function StudentDashboardPage() {
       return map;
     },
     enabled: !!token && enrollments.length > 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: featured = [] } = useQuery({
@@ -200,7 +204,7 @@ export default function StudentDashboardPage() {
                 {achievements.slice(0, 3).map((a) => (
                   <li key={a.id} className="flex items-center gap-2 text-sm">
                     <Award className="h-4 w-4 text-amber-500" />
-                    <span>{(a.definition as { name?: string; title?: string }).name ?? (a.definition as { title?: string }).title}</span>
+                    <span>{a.title}</span>
                   </li>
                 ))}
               </ul>

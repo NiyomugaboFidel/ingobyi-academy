@@ -53,6 +53,7 @@ import { MessageBubble, DateSeparator } from './message-bubble';
 import { ThreadPanel } from './thread-panel';
 import { OnlineBadge, PresenceDot } from '@/components/presence/online-badge';
 import { usePresenceStore } from '@/lib/presence/store';
+import { ConversationListSkeleton, ChatMessagesSkeleton } from '@/components/dashboard/table-skeleton';
 
 type SidebarFilter = 'all' | 'direct' | 'courses' | 'archived' | 'starred';
 
@@ -444,7 +445,7 @@ export function MessagingDashboard({
         </div>
         <ScrollArea className="flex-1">
           {isLoading ? (
-            <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+            <ConversationListSkeleton />
           ) : filteredConversations.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">No conversations yet.</p>
           ) : (
@@ -520,7 +521,7 @@ export function MessagingDashboard({
 
             <ScrollArea className="flex-1 px-4">
               {loadingMessages ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">Loading messages…</p>
+                <ChatMessagesSkeleton />
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <MessageSquare className="h-10 w-10 text-muted-foreground/40 mb-3" />

@@ -1,18 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+<<<<<<< HEAD
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Eye, Plus, Pencil } from 'lucide-react';
 import { truncateHtml } from '@/lib/utils/html';
+=======
+import { BookOpen, Plus, Pencil } from 'lucide-react';
+>>>>>>> 0e94140 (add cetificate)
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { Button } from '@/components/ui/button';
-import { listAllCourses } from '@/lib/api/courses';
+import { listCourses } from '@/lib/api/courses';
 import { useAuthStore } from '@/lib/auth/store';
-
-type Row = { id: string; title: string; status: string; slug: string; shortDescription?: string | null };
+import { usePaginatedQuery } from '@/lib/hooks/use-paginated-query';
+import type { Course } from '@/lib/api/types';
 
 const STATUS_STYLES: Record<string, string> = {
   PUBLISHED: 'bg-green-100 text-green-800',
@@ -23,12 +27,14 @@ const STATUS_STYLES: Record<string, string> = {
 export default function TrainerCoursesPage() {
   const token = useAuthStore((s) => s.accessToken)!;
 
-  const { data, isLoading } = useQuery({
+  const { rows, meta, page, setPage, isLoading, isFetching } = usePaginatedQuery<Course>({
     queryKey: ['trainer', 'courses'],
-    queryFn: () => listAllCourses(token),
+    queryFn: (p, limit) => listCourses(token, p, limit),
+    pageSize: 12,
     enabled: !!token,
   });
 
+<<<<<<< HEAD
   const rows: Row[] = (data ?? []).map((c) => ({
     id: c.id,
     title: c.title,
@@ -52,6 +58,31 @@ export default function TrainerCoursesPage() {
         </Link>
       </div>
     ), filterable: false },
+=======
+  const columns: DataColumn<Course>[] = [
+    { id: 'title', header: 'Course', accessor: (r) => <span className="font-medium">{r.title}</span>, sortValue: (r) => r.title },
+    {
+      id: 'status',
+      header: 'Status',
+      accessor: (r) => (
+        <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLES[r.status ?? 'DRAFT'] ?? STATUS_STYLES.DRAFT}`}>
+          {r.status ?? 'DRAFT'}
+        </span>
+      ),
+      sortValue: (r) => r.status ?? 'DRAFT',
+      filterValue: (r) => r.status ?? 'DRAFT',
+    },
+    {
+      id: 'actions',
+      header: '',
+      accessor: (r) => (
+        <Link href={`/trainer/courses/${r.id}/edit`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline">
+          <Pencil className="h-3.5 w-3.5" /> Edit
+        </Link>
+      ),
+      filterable: false,
+    },
+>>>>>>> 0e94140 (add cetificate)
   ];
 
   return (
@@ -84,10 +115,16 @@ export default function TrainerCoursesPage() {
         <DataTable
           data={rows}
           columns={columns}
+          loading={isLoading || isFetching}
           searchPlaceholder="Search courses…"
           searchKeys={[(r) => r.title, (r) => r.shortDescription ?? '']}
           pageSize={12}
           compact
+          serverPagination={
+            meta
+              ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage }
+              : undefined
+          }
         />
       )}
     </DashboardShell>

@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { ListPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { Button } from '@/components/ui/button';
 import { getErrorMessage } from '@/lib/api/errors';
 import {
@@ -223,7 +224,7 @@ export default function AdminJoinRequestsPage() {
         )}
 
         {isLoading ? (
-          <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
+          <ListPageSkeleton />
         ) : requests.length === 0 && !error && !noOrg ? (
           <EmptyState
             icon={Inbox}

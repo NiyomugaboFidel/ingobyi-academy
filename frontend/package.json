@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3000 --webpack --hostname 127.0.0.1",
+    "dev:turbo": "next dev --port 3000 --hostname 127.0.0.1",
     "dev:full": "concurrently -k -n next,api -c cyan,magenta \"npm run dev\" \"npm run start:dev --prefix ../backend\"",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",

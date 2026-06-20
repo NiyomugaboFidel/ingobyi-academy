@@ -6,15 +6,17 @@ import { Bookmark } from 'lucide-react';
 import { LearningShell } from '@/components/layout/learning-shell';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { listWishlist } from '@/lib/api/wishlist';
+import { learningKeys } from '@/lib/query/learning';
 import { useAuthStore } from '@/lib/auth/store';
 
 export default function StudentWishlistPage() {
   const token = useAuthStore((s) => s.accessToken)!;
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['wishlist'],
+    queryKey: learningKeys.myWishlist(),
     queryFn: () => listWishlist(token),
     enabled: !!token,
+    refetchOnWindowFocus: true,
   });
 
   return (

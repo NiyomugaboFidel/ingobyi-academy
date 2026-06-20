@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../../shared/email/email.service';
+import { ProgressService } from '../progress/progress.service';
 import { GradeSubmissionDto } from './dto/grade-submission.dto';
 import { SubmitAssignmentDto } from './dto/submit-assignment.dto';
 
@@ -9,6 +10,7 @@ export class AssignmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly email: EmailService,
+    private readonly progress: ProgressService,
   ) {}
 
   async create(dto: {
@@ -35,6 +37,12 @@ export class AssignmentsService {
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
     return assignment;
+  }
+
+  async getMySubmission(assignmentId: string, userId: string) {
+    return this.prisma.submission.findUnique({
+      where: { assignmentId_userId: { assignmentId, userId } },
+    });
   }
 
   async update(
@@ -94,10 +102,21 @@ export class AssignmentsService {
         gradedAt: new Date(),
       },
       include: {
-        user: { select: { email: true } },
-        assignment: { select: { title: true } },
+        user: { select: { id: true, email: true } },
+        assignment: {
+          select: {
+            title: true,
+            lessonId: true,
+          },
+        },
       },
     });
+
+    await this.progress.markLessonCompleteForUser(
+      submission.userId,
+      submission.assignment.lessonId,
+    );
+
     void this.email.sendAssignmentGraded(
       submission.user.email,
       submission.assignment.title,

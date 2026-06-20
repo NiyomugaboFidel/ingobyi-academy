@@ -15,7 +15,31 @@ export * from './progress';
 export * from './assignments';
 export * from './quizzes';
 export * from './analytics';
-export * from './superadmin';
+export {
+  activateUser,
+  deactivateUser,
+  getPlatformStatsSafe,
+  getSuperadminStats,
+  listAllJoinRequests,
+  listAllSuperadminOrgs,
+  listAllSuperadminUsers,
+  listCategories,
+  listOrgJoinRequests,
+  listPendingCourses,
+  listSuperadminOrgs,
+  listSuperadminUsers,
+  reviewJoinRequest,
+  approveCourse as superadminApproveCourse,
+  rejectCourse as superadminRejectCourse,
+} from './superadmin';
+export type {
+  CourseCategory,
+  EnrichedJoinRequest,
+  OrgJoinRequest,
+  PendingCourse,
+  SuperadminOrg,
+  SuperadminUser,
+} from './superadmin';
 export * from './community';
 export * from './reports';
 export * from './messaging';

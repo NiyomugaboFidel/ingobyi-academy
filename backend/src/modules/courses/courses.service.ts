@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -72,7 +73,11 @@ export class CoursesService {
     return course;
   }
 
-  async list(user: AuthenticatedUser, pagination: PaginationDto) {
+  async list(
+    user: AuthenticatedUser,
+    pagination: PaginationDto,
+    status?: CourseStatus,
+  ) {
     const effectiveRole = guardRole(user);
     const visibilityWhere = courseVisibilityFilter(user);
     let where: Record<string, unknown> = { ...visibilityWhere };
@@ -86,6 +91,10 @@ export class CoursesService {
         AND: [visibilityWhere, { trainers: { some: { userId: user.userId } } }],
       };
     }
+
+    if (status) {
+      where = { AND: [where, { status }] };
+    }
     const [data, total] = await Promise.all([
       this.prisma.course.findMany({
         where,
@@ -98,6 +107,29 @@ export class CoursesService {
               user: { select: { id: true, firstName: true, lastName: true } },
             },
           },
+          org: { select: { id: true, name: true, slug: true } },
+          category: { select: { id: true, name: true, slug: true } },
+        },
+      }),
+      this.prisma.course.count({ where }),
+    ]);
+    return {
+      data,
+      meta: buildPaginatedMeta(pagination.page, pagination.limit, total),
+    };
+  }
+
+  async listPending(pagination: PaginationDto) {
+    const where = { status: CourseStatus.PENDING_REVIEW };
+    const [data, total] = await Promise.all([
+      this.prisma.course.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.limit,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          org: { select: { name: true } },
+          category: { select: { name: true, slug: true } },
         },
       }),
       this.prisma.course.count({ where }),
@@ -138,13 +170,66 @@ export class CoursesService {
     }
     if (
       course.status !== CourseStatus.PUBLISHED &&
-      (!user ||
-        (user.role !== UserRole.SUPERADMIN &&
-          !course.trainers.some((t) => t.userId === user.userId)))
+      !this.canViewUnpublishedCourse(user, course)
     ) {
       throw new ForbiddenException('Course not accessible');
     }
     return course;
+  }
+
+  private canViewUnpublishedCourse(
+    user: AuthenticatedUser | undefined | null,
+    course: { orgId: string | null; trainers: { userId: string }[] },
+  ): boolean {
+    if (!user) return false;
+    if (user.role === UserRole.SUPERADMIN) return true;
+    if (course.trainers.some((t) => t.userId === user.userId)) return true;
+    const effectiveRole = guardRole(user);
+    return (
+      effectiveRole === UserRole.ADMIN &&
+      !!user.orgId &&
+      user.orgId === course.orgId
+    );
+  }
+
+  private async getCourseForAction(id: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id },
+      include: { trainers: true },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+    return course;
+  }
+
+  private assertCanManageCourse(user: AuthenticatedUser, course: { orgId: string | null; trainers: { userId: string }[] }) {
+    if (user.role === UserRole.SUPERADMIN) return;
+    const effectiveRole = guardRole(user);
+    const isTrainer = course.trainers.some((t) => t.userId === user.userId);
+    const isOrgAdmin =
+      effectiveRole === UserRole.ADMIN &&
+      !!user.orgId &&
+      user.orgId === course.orgId;
+    if (!isTrainer && !isOrgAdmin) {
+      throw new ForbiddenException('Not allowed to manage this course');
+    }
+  }
+
+  private assertCanReviewCourse(
+    user: AuthenticatedUser,
+    course: { orgId: string | null; status: CourseStatus },
+  ) {
+    if (user.role === UserRole.SUPERADMIN) return;
+    const effectiveRole = guardRole(user);
+    if (
+      effectiveRole !== UserRole.ADMIN ||
+      !user.orgId ||
+      user.orgId !== course.orgId
+    ) {
+      throw new ForbiddenException('Not allowed to review this course');
+    }
+    if (course.status !== CourseStatus.PENDING_REVIEW) {
+      throw new BadRequestException('Course is not pending review');
+    }
   }
 
   async update(id: string, dto: UpdateCourseDto) {
@@ -158,6 +243,7 @@ export class CoursesService {
     });
   }
 
+<<<<<<< HEAD
   async listPending(user: AuthenticatedUser) {
     const include = {
       org: { select: { id: true, name: true, slug: true } },
@@ -248,12 +334,17 @@ export class CoursesService {
     });
     if (!existing) throw new NotFoundException('Course not found');
 
+=======
+  async requestPublish(id: string, user: AuthenticatedUser) {
+    const existing = await this.getCourseForAction(id);
+    this.assertCanManageCourse(user, existing);
+>>>>>>> 0e94140 (add cetificate)
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PENDING_REVIEW },
     });
     await this.audit.log({
-      userId,
+      userId: user.userId,
       orgId: course.orgId ?? undefined,
       action: AuditAction.PUBLISH,
       entity: 'Course',
@@ -302,6 +393,7 @@ export class CoursesService {
   }
 
   async approve(id: string, user: AuthenticatedUser) {
+<<<<<<< HEAD
     const existing = await this.prisma.course.findUnique({
       where: { id },
       include: {
@@ -322,6 +414,10 @@ export class CoursesService {
       }
     }
 
+=======
+    const existing = await this.getCourseForAction(id);
+    this.assertCanReviewCourse(user, existing);
+>>>>>>> 0e94140 (add cetificate)
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PUBLISHED, publishedAt: new Date() },
@@ -348,6 +444,7 @@ export class CoursesService {
   }
 
   async reject(id: string, user: AuthenticatedUser) {
+<<<<<<< HEAD
     const existing = await this.prisma.course.findUnique({
       where: { id },
       include: { trainers: { select: { userId: true } } },
@@ -366,6 +463,10 @@ export class CoursesService {
       }
     }
 
+=======
+    const existing = await this.getCourseForAction(id);
+    this.assertCanReviewCourse(user, existing);
+>>>>>>> 0e94140 (add cetificate)
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.DRAFT },

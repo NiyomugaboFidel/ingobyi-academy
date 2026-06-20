@@ -65,8 +65,8 @@ const GROUPS: Record<UserRole, NavGroup[]> = {
       items: [
         { id: 'sa-courses', label: 'Courses', href: '/superadmin/courses', Icon: BookOpen },
         { id: 'sa-approvals', label: 'Approvals', href: '/superadmin/course-approvals', Icon: ClipboardCheck },
+        { id: 'sa-cert-approvals', label: 'Certificates', href: '/admin/certificate-approvals', Icon: Award },
         { id: 'sa-catalog', label: 'Public catalog', href: '/catalog', Icon: GraduationCap },
-        { id: 'sa-certificates', label: 'Certificates', href: '/profile', Icon: Award },
       ],
     },
     {
@@ -114,7 +114,7 @@ const GROUPS: Record<UserRole, NavGroup[]> = {
         { id: 'ad-courses', label: 'Courses', href: '/admin/courses', Icon: BookOpen },
         { id: 'ad-categories', label: 'Categories', href: '/admin/categories', Icon: Tags },
         { id: 'ad-approvals', label: 'Approvals', href: '/admin/course-approvals', Icon: ClipboardCheck },
-        { id: 'ad-certificates', label: 'Certificates', href: '/profile', Icon: Award },
+        { id: 'ad-cert-approvals', label: 'Certificates', href: '/admin/certificate-approvals', Icon: Award },
       ],
     },
     {

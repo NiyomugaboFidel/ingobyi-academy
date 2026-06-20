@@ -1,7 +1,14 @@
+'use client';
+
 import Link from 'next/link';
-import { BookOpen, Clock, GraduationCap, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { BookOpen, CheckCircle2, Clock, GraduationCap } from 'lucide-react';
 import { BookmarkButton } from '@/components/bookmark-button';
+import { StarRating } from '@/components/ui/star-rating';
 import { cn } from '@/lib/utils';
+import { myEnrollments } from '@/lib/api/enrollments';
+import { learningKeys } from '@/lib/query/learning';
+import { useAuthStore } from '@/lib/auth/store';
 import type { Course } from '@/lib/api/types';
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -16,6 +23,20 @@ type Props = {
 };
 
 export function CourseCard({ course, className }: Props) {
+  const token = useAuthStore((s) => s.accessToken);
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken);
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: learningKeys.myEnrollments(),
+    queryFn: () => myEnrollments(token!),
+    enabled: !!token && isAuthenticated,
+    refetchOnWindowFocus: true,
+  });
+
+  const enrollment = enrollments.find((e) => e.course.id === course.id);
+  const isEnrolled = !!enrollment;
+  const isCompleted = enrollment?.status === 'COMPLETED';
+
   const levelLabel = LEVEL_LABELS[course.level] ?? course.level;
   const priceLabel = course.price ? `RWF ${course.price}` : 'Free';
 
@@ -23,11 +44,11 @@ export function CourseCard({ course, className }: Props) {
     <div
       className={cn(
         'group flex h-full w-full flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-brand-green/8 transition hover:ring-brand-mint/40 hover:shadow-md',
+        isEnrolled && 'ring-brand-green/25',
         className,
       )}
     >
       <Link href={`/catalog/${course.slug}`} className="flex min-h-0 flex-1 flex-col">
-        {/* Thumbnail */}
         <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-brand-card-tint">
           {course.thumbnailUrl ? (
             <img
@@ -41,8 +62,19 @@ export function CourseCard({ course, className }: Props) {
               {course.title.slice(0, 2).toUpperCase()}
             </div>
           )}
-          {course.type ? (
+          {isEnrolled && (
+            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-brand-green px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+              <CheckCircle2 className="h-3 w-3" />
+              {isCompleted ? 'Completed' : 'Enrolled'}
+            </span>
+          )}
+          {course.type && !isEnrolled ? (
             <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-green shadow-sm ring-1 ring-brand-green/10">
+              {course.type.replace('_', ' ')}
+            </span>
+          ) : null}
+          {course.type && isEnrolled ? (
+            <span className="absolute left-2 top-8 rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-green shadow-sm ring-1 ring-brand-green/10">
               {course.type.replace('_', ' ')}
             </span>
           ) : null}
@@ -55,7 +87,6 @@ export function CourseCard({ course, className }: Props) {
           />
         </div>
 
-        {/* Meta */}
         <div className="flex flex-1 flex-col gap-2 px-3 pb-3 pt-2 font-poppins">
           <h3 className="line-clamp-2 min-h-[2.35rem] text-sm font-bold leading-snug text-brand-ink group-hover:text-brand-green">
             {course.title}
@@ -71,14 +102,15 @@ export function CourseCard({ course, className }: Props) {
             <p className="text-[11px] font-medium text-brand-ink/55">{course.org.name}</p>
           ) : null}
 
-          {/* rating placeholder row */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-brand-ink/70">
-            <span className="inline-flex items-center gap-1 font-semibold text-brand-green">
-              <Star className="h-3.5 w-3.5 fill-brand-yellow text-brand-yellow" aria-hidden />
-            </span>
+            <StarRating
+              value={course.avgRating}
+              reviewCount={course.reviewCount}
+              showValue
+              size="xs"
+            />
           </div>
 
-          {/* badges */}
           <div className="flex flex-wrap items-center gap-1.5">
             {levelLabel ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-green/8 px-2 py-0.5 text-[10px] font-bold text-brand-green">
@@ -92,6 +124,12 @@ export function CourseCard({ course, className }: Props) {
                 {course.category.name}
               </span>
             ) : null}
+            {isEnrolled && !isCompleted && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                <Clock className="h-3 w-3" />
+                In progress
+              </span>
+            )}
           </div>
         </div>
       </Link>

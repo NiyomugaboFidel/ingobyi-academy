@@ -90,11 +90,8 @@ export class SuperadminController {
 
   @Get('courses/pending')
   @ApiOperation({ summary: 'Courses pending review' })
-  pending() {
-    return this.prisma.course.findMany({
-      where: { status: 'PENDING_REVIEW' },
-      include: { org: { select: { name: true } } },
-    });
+  pending(@Query() pagination: PaginationDto) {
+    return this.courses.listPending(pagination);
   }
 
   @Post('courses/:id/approve')

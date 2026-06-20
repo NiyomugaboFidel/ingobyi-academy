@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { ListPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { getErrorMessage } from '@/lib/api/errors';
 import { listCategories, type CourseCategory } from '@/lib/api/superadmin';
 
@@ -97,7 +98,7 @@ export default function SuperadminCategoriesPage() {
         )}
 
         {isLoading ? (
-          <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
+          <ListPageSkeleton />
         ) : rows.length === 0 && !error ? (
           <EmptyState
             icon={Tags}

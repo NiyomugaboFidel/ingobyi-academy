@@ -76,18 +76,35 @@ export default function SettingsPage() {
             {active === 'privacy' && (
               <section className="rounded-2xl border border-brand-green/10 bg-white p-6 shadow-sm">
                 <h2 className="font-extrabold text-brand-ink">Privacy settings</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ingobyi Academy keeps learner profiles public so people can follow each other, share progress, and start conversations in the community.
+                </p>
                 <div className="mt-5 space-y-4">
                   {[
-                    { label: 'Show profile publicly', desc: 'Allow others to view your profile and achievements.' },
-                    { label: 'Show enrolled courses', desc: 'Display your course list on your public profile.' },
-                    { label: 'Allow direct messages', desc: 'Let trainers, admins, and parents message you.' },
+                    {
+                      label: 'Public profile',
+                      desc: 'Your name, avatar, bio, achievements, and community posts are visible to everyone.',
+                      enabled: true,
+                    },
+                    {
+                      label: 'Community connections',
+                      desc: 'Other members can follow you and send direct messages based on platform messaging rules.',
+                      enabled: true,
+                    },
+                    {
+                      label: 'Learning activity',
+                      desc: 'Completed courses and achievements may appear on your public profile.',
+                      enabled: true,
+                    },
                   ].map((item) => (
-                    <div key={item.label} className="flex items-start justify-between gap-4">
+                    <div key={item.label} className="flex items-start justify-between gap-4 rounded-xl border border-brand-green/8 bg-brand-canvas/60 p-4">
                       <div>
                         <p className="text-sm font-semibold text-brand-ink">{item.label}</p>
                         <p className="text-xs text-muted-foreground">{item.desc}</p>
                       </div>
-                      <Toggle checked={true} onChange={() => {}} />
+                      <span className="rounded-full bg-brand-green/10 px-3 py-1 text-[11px] font-bold text-brand-green">
+                        Always on
+                      </span>
                     </div>
                   ))}
                 </div>

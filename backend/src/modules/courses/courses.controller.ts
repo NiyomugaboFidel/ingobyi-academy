@@ -17,6 +17,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RequireOrgGuard } from '../../common/guards/require-org.guard';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { CoursesListQueryDto } from './dto/courses-list-query.dto';
 import { AuthenticatedUser } from '../../common/interfaces/request-with-user.interface';
 import { ParseCuidPipe } from '../../common/pipes/parse-cuid.pipe';
 import { CoursesService } from './courses.service';
@@ -42,9 +43,9 @@ export class CoursesController {
   @ApiOperation({ summary: 'List courses' })
   list(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() pagination: PaginationDto,
+    @Query() query: CoursesListQueryDto,
   ) {
-    return this.coursesService.list(user, pagination);
+    return this.coursesService.list(user, query, query.status);
   }
 
   @Get('pending')
@@ -94,12 +95,16 @@ export class CoursesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
   ) {
-    return this.coursesService.requestPublish(id, user.userId);
+    return this.coursesService.requestPublish(id, user);
   }
 
   @Post(':id/approve')
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+<<<<<<< HEAD
   @ApiOperation({ summary: 'Approve course for publication' })
+=======
+  @ApiOperation({ summary: 'Approve course' })
+>>>>>>> 0e94140 (add cetificate)
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
@@ -109,7 +114,11 @@ export class CoursesController {
 
   @Post(':id/reject')
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+<<<<<<< HEAD
   @ApiOperation({ summary: 'Reject course publication request' })
+=======
+  @ApiOperation({ summary: 'Reject course' })
+>>>>>>> 0e94140 (add cetificate)
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,

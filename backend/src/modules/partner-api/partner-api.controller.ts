@@ -1,15 +1,25 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { ApiKeyScope, CourseStatus } from '@prisma/client';
+import { ApiKeyScope } from '@prisma/client';
 import { ApiKeyScopes } from '../../common/decorators/api-key-scopes.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 import { ParseCuidPipe } from '../../common/pipes/parse-cuid.pipe';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CertificatesService } from '../certificates/certificates.service';
-import { EnrollmentsService } from '../enrollments/enrollments.service';
-import { Req, Param } from '@nestjs/common';
+import {
+  PartnerCoursesQueryDto,
+  PartnerEnrollmentsQueryDto,
+} from './dto/partner-query.dto';
+import { PartnerApiService } from './partner-api.service';
 
 @ApiTags('Partner API')
 @Controller('partner')
@@ -17,92 +27,138 @@ import { Req, Param } from '@nestjs/common';
 @UseGuards(ApiKeyGuard)
 @ApiSecurity('api-key')
 export class PartnerApiController {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly enrollments: EnrollmentsService,
-    private readonly certificates: CertificatesService,
-  ) {}
+  constructor(private readonly partnerApi: PartnerApiService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Partner API index — endpoints and scopes' })
+  index() {
+    return this.partnerApi.getIndex();
+  }
+
+  @Get('organization')
+  @ApiKeyScopes(ApiKeyScope.COURSE_READ)
+  @ApiOperation({ summary: 'Organization tied to this API key' })
+  organization(@Req() req: RequestWithUser) {
+    return this.partnerApi.getOrganization(req.apiKey!);
+  }
 
   @Get('courses')
   @ApiKeyScopes(ApiKeyScope.COURSE_READ)
-  @ApiOperation({ summary: 'Fetch publishable catalog' })
-  listCourses(@Req() req: RequestWithUser) {
-    const orgId = req.apiKey?.orgId;
-    return this.prisma.course.findMany({
-      where: {
-        status: CourseStatus.PUBLISHED,
-        ...(orgId ? { orgId } : {}),
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        shortDescription: true,
-        thumbnailUrl: true,
-        type: true,
-        level: true,
-        price: true,
-      },
-    });
+  @ApiOperation({ summary: 'List published courses (paginated)' })
+  listCourses(
+    @Req() req: RequestWithUser,
+    @Query() query: PartnerCoursesQueryDto,
+  ) {
+    return this.partnerApi.listCourses(req.apiKey!, query);
+  }
+
+  @Get('courses/by-slug/:slug')
+  @ApiKeyScopes(ApiKeyScope.COURSE_READ)
+  @ApiOperation({ summary: 'Course detail by slug' })
+  courseBySlug(@Req() req: RequestWithUser, @Param('slug') slug: string) {
+    return this.partnerApi.getCourseBySlug(req.apiKey!, slug);
   }
 
   @Get('courses/:id')
   @ApiKeyScopes(ApiKeyScope.COURSE_READ)
-  @ApiOperation({ summary: 'Course detail' })
-  getCourse(@Param('id', ParseCuidPipe) id: string) {
-    return this.prisma.course.findFirst({
-      where: { id, status: CourseStatus.PUBLISHED },
-      include: {
-        modules: {
-          where: { isPublished: true },
-          include: {
-            lessons: {
-              where: { isPublished: true, isFree: true },
-              select: { id: true, title: true, type: true, order: true },
-            },
-          },
-        },
-      },
-    });
+  @ApiOperation({ summary: 'Course detail with curriculum metadata' })
+  getCourse(@Req() req: RequestWithUser, @Param('id', ParseCuidPipe) id: string) {
+    return this.partnerApi.getCourseById(req.apiKey!, id);
   }
 
-  @Post('enrollments')
-  @ApiKeyScopes(ApiKeyScope.ENROLLMENT_WRITE)
-  @ApiOperation({ summary: 'Enroll learner' })
-  enroll(
-    @Body('userId', ParseCuidPipe) userId: string,
-    @Body('courseId', ParseCuidPipe) courseId: string,
-  ) {
-    return this.enrollments.enroll(userId, courseId, 'API_KEY');
+  @Get('categories')
+  @ApiKeyScopes(ApiKeyScope.COURSE_READ)
+  @ApiOperation({ summary: 'Course categories' })
+  categories() {
+    return this.partnerApi.listCategories();
   }
 
   @Get('enrollments')
   @ApiKeyScopes(ApiKeyScope.ENROLLMENT_READ)
-  @ApiOperation({ summary: 'Check enrollment' })
+  @ApiOperation({ summary: 'List enrollments (filter by learner/course/status)' })
+  listEnrollments(
+    @Req() req: RequestWithUser,
+    @Query() query: PartnerEnrollmentsQueryDto,
+  ) {
+    return this.partnerApi.listEnrollments(req.apiKey!, query);
+  }
+
+  @Get('enrollments/check')
+  @ApiKeyScopes(ApiKeyScope.ENROLLMENT_READ)
+  @ApiOperation({ summary: 'Check if learner is enrolled in a course' })
   checkEnrollment(
     @Query('learnerId', ParseCuidPipe) learnerId: string,
     @Query('courseId', ParseCuidPipe) courseId: string,
   ) {
-    return this.enrollments.check(learnerId, courseId);
+    return this.partnerApi.checkEnrollment(learnerId, courseId);
+  }
+
+  @Post('enrollments')
+  @ApiKeyScopes(ApiKeyScope.ENROLLMENT_WRITE)
+  @ApiOperation({ summary: 'Enroll a learner in a published course' })
+  enroll(
+    @Req() req: RequestWithUser,
+    @Body('userId', ParseCuidPipe) userId: string,
+    @Body('courseId', ParseCuidPipe) courseId: string,
+  ) {
+    return this.partnerApi.enrollLearner(req.apiKey!, userId, courseId);
+  }
+
+  @Get('learners/:id/learning')
+  @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
+  @ApiOperation({ summary: 'Full learning record — enrollments, progress, certs, achievements' })
+  learnerLearning(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseCuidPipe) id: string,
+  ) {
+    return this.partnerApi.getLearnerLearningRecord(req.apiKey!, id);
+  }
+
+  @Get('learners/:id/enrollments')
+  @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
+  @ApiOperation({ summary: 'Learner enrollments with progress summary' })
+  learnerEnrollments(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseCuidPipe) id: string,
+  ) {
+    return this.partnerApi.getLearnerEnrollments(req.apiKey!, id);
+  }
+
+  @Get('learners/:id/progress/:courseId')
+  @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
+  @ApiOperation({ summary: 'Detailed lesson progress for one course' })
+  learnerProgress(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseCuidPipe) id: string,
+    @Param('courseId', ParseCuidPipe) courseId: string,
+  ) {
+    return this.partnerApi.getLearnerCourseProgress(req.apiKey!, id, courseId);
+  }
+
+  @Get('learners/:id/certificates')
+  @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
+  @ApiOperation({ summary: 'Certificates earned by learner' })
+  learnerCertificates(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseCuidPipe) id: string,
+  ) {
+    return this.partnerApi.getLearnerCertificates(req.apiKey!, id);
+  }
+
+  @Get('learners/:id/achievements')
+  @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
+  @ApiOperation({ summary: 'Unified achievements (certificates, courses, badges)' })
+  learnerAchievements(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseCuidPipe) id: string,
+  ) {
+    return this.partnerApi.getLearnerAchievements(req.apiKey!, id);
   }
 
   @Get('certificates/verify/:code')
   @ApiKeyScopes(ApiKeyScope.CERTIFICATE_VERIFY)
-  @ApiOperation({ summary: 'Verify certificate' })
+  @ApiOperation({ summary: 'Verify a certificate by code' })
   verifyCert(@Param('code') code: string) {
-    return this.certificates.verify(code);
-  }
-
-  @Get('learners/:id/records')
-  @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
-  @ApiOperation({ summary: 'Learning records' })
-  learnerRecords(@Param('id', ParseCuidPipe) id: string) {
-    return this.prisma.enrollment.findMany({
-      where: { userId: id },
-      include: {
-        course: { select: { title: true, slug: true } },
-        progress: { include: { lesson: { select: { title: true } } } },
-      },
-    });
+    return this.partnerApi.verifyCertificate(code);
   }
 }

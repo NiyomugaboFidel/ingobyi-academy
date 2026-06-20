@@ -1,67 +1,65 @@
 # Ingobyi Academy
 
-Multi-tenant learning platform — schools, training centers, and organizations.
+Multi-tenant learning platform for schools, training centers, and organizations.
 
-| | Stack |
-|---|--------|
-| Frontend | Next.js 16, React 19, Tailwind |
-| Backend | NestJS 10, Prisma, PostgreSQL 16 |
-| Deploy | Docker Compose (full stack) |
+## Run locally (fastest — recommended for development)
 
-## Run with Docker (recommended)
+**Requirements:** Node 20+, PostgreSQL on `localhost:5432`
 
 ```bash
-make docker-init    # creates .env + secrets
-make docker-up      # postgres + API + frontend + nginx
+# 1. Database (if not already running)
+cd backend && docker compose up -d postgres   # needs Docker + compose plugin
+# OR use your local PostgreSQL with credentials in backend/.env
+
+# 2. First-time setup
+cd backend && npm install && npx prisma migrate deploy && npm run prisma:seed
+cd frontend && npm install
+
+# 3. Start both servers
+make dev
+# or: ./scripts/dev-local.sh
+```
+
+- **Frontend:** http://localhost:3000  
+- **API:** http://localhost:3001/api  
+- **Demo login:** `super@ingobyi.com` / `password123`
+
+> **Note:** Frontend dev uses `--webpack` (not Turbopack) because Turbopack can hang on this project.
+
+## Run with Docker (in-house testers)
+
+See **[DEPLOY.md](DEPLOY.md)** for full instructions.
+
+```bash
+make docker-init    # create .env with secrets
+make docker-check   # verify Docker access
+make docker-up      # build & start nginx + API + web + postgres
 make docker-seed    # demo users (first time)
 ```
 
-**App:** http://localhost  
-**Demo:** `super@ingobyi.com` / `password123`
-
-See **[DEPLOY.md](DEPLOY.md)** for Docker / LAN hosting.
-
-### Railway (cloud)
-
-See **[RAILWAY.md](RAILWAY.md)** — deploy API + frontend + Postgres on Railway.
-
-```text
-backend/   → Railway service (root: /backend)
-frontend/  → Railway service (root: /frontend)
-Postgres   → Railway database plugin
-```
-
-## Development
-
-**Option A — Docker hot reload**
+**Docker setup on Ubuntu:**
 ```bash
-make docker-dev
-# Frontend http://localhost:3000  API http://localhost:3001/api
+sudo apt install docker.io docker-compose-plugin
+sudo usermod -aG docker $USER
+# log out and back in, then:
+make docker-up
 ```
 
-**Option B — Local Node**
-```bash
-cd backend && docker compose up -d postgres
-cd backend && npm install && npm run prisma:migrate && npm run prisma:seed && npm run start:dev
-cd frontend && npm install && npm run dev
-```
+## Troubleshooting
 
-## Project layout
+| Problem | Fix |
+|---------|-----|
+| Frontend hangs / blank page | Kill stale process: `kill -9 $(lsof -t -i:3000)` then `make dev` |
+| `EADDRINUSE :3000` | Port in use — run command above |
+| `docker: permission denied` | `sudo usermod -aG docker $USER` and re-login |
+| `docker compose not found` | `sudo apt install docker-compose-plugin` |
+| API 401 / login fails | Run `cd backend && npm run prisma:seed` |
+| DB connection error | Check `DATABASE_URL` in `backend/.env` |
 
-```
-ingobyi-academy/
-├── docker-compose.yml       # Full stack (staging/production)
-├── docker-compose.dev.yml   # Dev overlay (hot reload)
-├── nginx/                   # Reverse proxy config
-├── scripts/                 # docker-init.sh, docker-up.sh
-├── backend/                 # NestJS API
-├── frontend/                # Next.js app
-└── DEPLOY.md                # Deployment guide
-```
+## Stack
 
-## Tests
-
-```bash
-cd backend && npm run test:e2e   # 21 integration tests
-cd frontend && npm run build
-```
+| Layer | Tech |
+|-------|------|
+| Frontend | Next.js 16, React 19, Tailwind |
+| Backend | NestJS 10, Prisma, PostgreSQL |
+| Auth | JWT + httpOnly refresh cookies |

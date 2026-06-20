@@ -39,10 +39,25 @@ export type CourseReview = {
   rating: number;
   comment?: string | null;
   createdAt: string;
-  user?: { firstName: string; lastName: string; avatarUrl?: string | null };
+  user?: {
+    id?: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string | null;
+    platformRole?: string;
+    isVerified?: boolean;
+  };
+};
+
+export type RatingDistribution = {
+  star: number;
+  count: number;
 };
 
 export type CatalogCourseDetail = Course & {
+  avgRating?: number | null;
+  reviewCount?: number;
+  ratingDistribution?: RatingDistribution[];
   reviews?: CourseReview[];
   trainers?: Array<{
     isPrimary: boolean;
@@ -91,4 +106,52 @@ export async function getCategories() {
 
 export async function getFeatured() {
   return apiRequest<Course[]>('/catalog/featured');
+}
+
+export type SearchSuggestionCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  thumbnailUrl?: string | null;
+  shortDescription?: string | null;
+  level?: string;
+  price?: string | null;
+  category?: { name: string; slug: string } | null;
+  org?: { name: string; slug: string } | null;
+  enrollmentCount?: number;
+};
+
+export type SearchSuggestionCategory = {
+  name: string;
+  slug: string;
+  courseCount?: number;
+};
+
+export type CatalogSuggestions = {
+  query: string;
+  courses: SearchSuggestionCourse[];
+  categories: SearchSuggestionCategory[];
+  topics: string[];
+  popularTerms: string[];
+};
+
+export async function getSearchSuggestions(q?: string) {
+  const qs = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
+  return apiRequest<CatalogSuggestions>(`/catalog/suggestions${qs}`);
+}
+
+export function getMyCourseReview(courseId: string, token: string) {
+  return apiRequest<CourseReview | null>(`/reviews/courses/${courseId}/mine`, { token });
+}
+
+export function submitCourseReview(
+  courseId: string,
+  token: string,
+  body: { rating: number; comment?: string },
+) {
+  return apiRequest<CourseReview>(`/reviews/courses/${courseId}`, {
+    method: 'POST',
+    token,
+    body: JSON.stringify(body),
+  });
 }

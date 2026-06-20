@@ -19,9 +19,14 @@ type QuizContent = {
   passingScore?: number;
 };
 
+import { ProgressService } from '../progress/progress.service';
+
 @Injectable()
 export class QuizzesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly progress: ProgressService,
+  ) {}
 
   private parseQuiz(content: string | null): QuizContent {
     if (!content) throw new BadRequestException('Quiz has no questions');
@@ -131,6 +136,10 @@ export class QuizzesService {
         },
         update: { isCompleted: true, completedAt: new Date() },
       });
+      await this.progress.checkAndCompleteEnrollment(
+        userId,
+        lesson.module.courseId,
+      );
     }
 
     return {

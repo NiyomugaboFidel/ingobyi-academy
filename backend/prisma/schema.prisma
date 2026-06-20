@@ -152,6 +152,12 @@ enum PresenceStatus {
   AWAY
 }
 
+enum CertificateRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AnnouncementTargetType {
   ALL_USERS
   ALL_ORGS
@@ -206,6 +212,8 @@ model User {
   cartItems            CartItem[]
   reviews              CourseReview[]
   certificates         Certificate[]
+  certificateRequests  CertificateRequest[]
+  certificateReviews   CertificateRequest[] @relation("CertificateReviewer")
   issueReports              IssueReport[]
   physicalAttendance        PhysicalAttendance[]
   conversationParticipants  ConversationParticipant[]
@@ -452,6 +460,7 @@ model Course {
   enrollments      Enrollment[]
   reviews          CourseReview[]
   certificates     Certificate[]
+  certificateRequests CertificateRequest[]
   chatRoom         CourseChatRoom?
   announcements    Announcement[]
   cohortCourses    CohortCourse[]
@@ -674,6 +683,27 @@ model Certificate {
   @@index([userId])
   @@index([courseId])
   @@index([verifyCode])
+}
+
+model CertificateRequest {
+  id           String                   @id @default(cuid())
+  userId       String
+  courseId     String
+  status       CertificateRequestStatus @default(PENDING)
+  message      String?
+  reviewNote   String?
+  reviewedById String?
+  requestedAt  DateTime                 @default(now())
+  reviewedAt   DateTime?
+
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation("CertificateReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
 }
 
 model PhysicalVenue {

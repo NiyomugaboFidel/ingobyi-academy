@@ -12,7 +12,12 @@ export class EnrollmentsService {
     private readonly email: EmailService,
   ) {}
 
-  async enroll(userId: string, courseId: string, source = 'DIRECT') {
+  async enroll(
+    userId: string,
+    courseId: string,
+    source = 'DIRECT',
+    apiKeyId?: string,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -21,8 +26,8 @@ export class EnrollmentsService {
     }
     const enrollment = await this.prisma.enrollment.upsert({
       where: { userId_courseId: { userId, courseId } },
-      create: { userId, courseId, source },
-      update: { status: EnrollmentStatus.ACTIVE },
+      create: { userId, courseId, source, apiKeyId },
+      update: { status: EnrollmentStatus.ACTIVE, source, apiKeyId },
       include: { course: { select: { id: true, title: true, slug: true } } },
     });
     await this.audit.log({
@@ -82,9 +87,15 @@ export class EnrollmentsService {
     const enrollment = await this.prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });
+    const isEnrolled =
+      !!enrollment &&
+      (enrollment.status === EnrollmentStatus.ACTIVE ||
+        enrollment.status === EnrollmentStatus.COMPLETED);
     return {
-      enrolled: !!enrollment && enrollment.status === 'ACTIVE',
+      enrolled: isEnrolled,
       status: enrollment?.status ?? null,
+      enrollmentId: enrollment?.id,
+      completedAt: enrollment?.completedAt,
     };
   }
 }

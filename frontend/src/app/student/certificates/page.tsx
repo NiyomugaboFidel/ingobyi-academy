@@ -1,23 +1,41 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Award, Download, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 import { LearningShell } from '@/components/layout/learning-shell';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { listMyCertificates } from '@/lib/api/certificates';
+import { Button } from '@/components/ui/button';
+import { downloadCertificatePdf, listMyCertificates } from '@/lib/api/certificates';
 import { getErrorMessage } from '@/lib/api/errors';
+import { learningKeys } from '@/lib/query/learning';
 import { useAuthStore } from '@/lib/auth/store';
 
 export default function StudentCertificatesPage() {
   const token = useAuthStore((s) => s.accessToken)!;
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const { data: certificates = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['certificates', 'mine'],
+    queryKey: learningKeys.myCertificates(),
     queryFn: () => listMyCertificates(token),
     enabled: !!token,
+    refetchOnWindowFocus: true,
   });
+
+  async function handleDownload(certId: string, courseTitle: string) {
+    setDownloadingId(certId);
+    try {
+      const safeName = courseTitle.replace(/[^\w\s-]/g, '').trim() || 'certificate';
+      await downloadCertificatePdf(certId, token, `${safeName}.pdf`);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   return (
     <LearningShell allowedRoles={['STUDENT', 'SUPERADMIN']}>
@@ -46,7 +64,7 @@ export default function StudentCertificatesPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-foreground">{cert.course?.title ?? 'Course certificate'}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Issued {new Date(cert.issuedAt).toLocaleDateString()} · Code {cert.code}
+                    Issued {new Date(cert.issuedAt).toLocaleDateString()} · Code {cert.verifyCode}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {cert.course?.slug && (
@@ -54,9 +72,19 @@ export default function StudentCertificatesPage() {
                         <ExternalLink className="h-3.5 w-3.5" /> View course
                       </Link>
                     )}
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                      <Download className="h-3.5 w-3.5" /> PDF download coming soon
-                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={downloadingId === cert.id}
+                      onClick={() =>
+                        void handleDownload(cert.id, cert.course?.title ?? 'certificate')
+                      }
+                      className="h-8 rounded-full border-brand-green/30 text-xs font-semibold text-brand-green hover:bg-brand-green/5"
+                    >
+                      <Download className="mr-1 h-3.5 w-3.5" />
+                      {downloadingId === cert.id ? 'Downloading…' : 'Download PDF'}
+                    </Button>
                   </div>
                 </div>
               </div>

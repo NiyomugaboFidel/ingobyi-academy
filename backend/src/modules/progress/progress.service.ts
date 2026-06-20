@@ -23,6 +23,76 @@ export class ProgressService {
     return { enrollment, lesson };
   }
 
+  async checkAndCompleteEnrollment(userId: string, courseId: string) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      include: {
+        progress: true,
+        course: {
+          include: {
+            modules: {
+              include: { lessons: { select: { id: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+      return enrollment;
+    }
+
+    const lessonIds = enrollment.course.modules.flatMap((m) =>
+      m.lessons.map((l) => l.id),
+    );
+    if (lessonIds.length === 0) return enrollment;
+
+    const completedIds = new Set(
+      enrollment.progress.filter((p) => p.isCompleted).map((p) => p.lessonId),
+    );
+    const allDone = lessonIds.every((id) => completedIds.has(id));
+    if (!allDone) return enrollment;
+
+    return this.prisma.enrollment.update({
+      where: { id: enrollment.id },
+      data: {
+        status: EnrollmentStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  async markLessonCompleteForUser(userId: string, lessonId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: { module: true },
+    });
+    if (!lesson) return null;
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId: lesson.module.courseId },
+      },
+    });
+    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+      return null;
+    }
+
+    await this.prisma.lessonProgress.upsert({
+      where: {
+        enrollmentId_lessonId: { enrollmentId: enrollment.id, lessonId },
+      },
+      create: {
+        enrollmentId: enrollment.id,
+        lessonId,
+        isCompleted: true,
+        completedAt: new Date(),
+      },
+      update: { isCompleted: true, completedAt: new Date() },
+    });
+
+    return this.checkAndCompleteEnrollment(userId, lesson.module.courseId);
+  }
+
   async heartbeat(userId: string, lessonId: string, watchedSec: number) {
     const { enrollment } = await this.getEnrollment(userId, lessonId);
     return this.prisma.lessonProgress.upsert({
@@ -41,7 +111,7 @@ export class ProgressService {
 
   async complete(userId: string, lessonId: string) {
     const { enrollment } = await this.getEnrollment(userId, lessonId);
-    return this.prisma.lessonProgress.upsert({
+    const progress = await this.prisma.lessonProgress.upsert({
       where: {
         enrollmentId_lessonId: { enrollmentId: enrollment.id, lessonId },
       },
@@ -53,6 +123,16 @@ export class ProgressService {
       },
       update: { isCompleted: true, completedAt: new Date() },
     });
+
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: { module: true },
+    });
+    if (lesson) {
+      await this.checkAndCompleteEnrollment(userId, lesson.module.courseId);
+    }
+
+    return progress;
   }
 
   async courseProgress(userId: string, courseId: string) {

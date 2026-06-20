@@ -15,7 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 EXPOSE 3000
 ENV HOSTNAME=0.0.0.0
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--webpack"]
 
 # ── build ─────────────────────────────────────────────────────────
 FROM base AS builder

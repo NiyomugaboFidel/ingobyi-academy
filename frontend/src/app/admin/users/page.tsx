@@ -1,17 +1,18 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { listAllOrgMembers } from '@/lib/api/organizations';
-import { listAllSuperadminUsers } from '@/lib/api/superadmin';
+import { ListPageSkeleton } from '@/components/dashboard/table-skeleton';
+import { listOrgMembers } from '@/lib/api/organizations';
+import { listSuperadminUsers } from '@/lib/api/superadmin';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '@/lib/auth/store';
 import { useActiveOrg } from '@/lib/hooks/use-active-org';
+import { usePaginatedQuery } from '@/lib/hooks/use-paginated-query';
 
 type UserRow = {
   id: string;
@@ -36,20 +37,27 @@ export default function AdminUsersPage() {
   const { orgId, effectiveRole } = useActiveOrg();
   const isSuperadmin = user?.platformRole === 'SUPERADMIN';
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['admin', 'users', effectiveRole, orgId],
-    queryFn: async () => {
+  const {
+    rows: rawRows,
+    meta,
+    page,
+    setPage,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = usePaginatedQuery({
+    queryKey: ['admin', 'users', effectiveRole, orgId, isSuperadmin],
+    queryFn: async (p, limit) => {
       if (isSuperadmin) {
-        const users = await listAllSuperadminUsers(token);
-        return {
-          data: users,
-          meta: { page: 1, limit: users.length, total: users.length, totalPages: 1 },
-        };
+        return listSuperadminUsers(token, p, limit);
       }
-      if (!orgId) return { data: [], meta: { page: 1, limit: 0, total: 0, totalPages: 0 } };
-      const members = await listAllOrgMembers(orgId, token);
+      if (!orgId) {
+        return { data: [], meta: { page: 1, limit, total: 0, totalPages: 0 } };
+      }
+      const members = await listOrgMembers(orgId, token, p, limit);
       return {
-        data: members.map((m) => ({
+        data: members.data.map((m) => ({
           id: m.user.id,
           firstName: m.user.firstName,
           lastName: m.user.lastName,
@@ -58,13 +66,14 @@ export default function AdminUsersPage() {
           isActive: m.status === 'ACTIVE',
           createdAt: '',
         })),
-        meta: { page: 1, limit: members.length, total: members.length, totalPages: 1 },
+        meta: members.meta,
       };
     },
-    enabled: !!token,
+    pageSize: 15,
+    enabled: !!token && (isSuperadmin || !!orgId),
   });
 
-  const rows: UserRow[] = (data?.data ?? []).map((u) => ({
+  const rows: UserRow[] = rawRows.map((u) => ({
     id: u.id,
     name: `${u.firstName} ${u.lastName}`,
     email: u.email,
@@ -110,7 +119,7 @@ export default function AdminUsersPage() {
         title="Users"
         description={
           isSuperadmin
-            ? `All ${data?.meta.total ?? ''} platform users.`
+            ? `All ${meta?.total ?? ''} platform users.`
             : 'Members in your organization.'
         }
         breadcrumbs={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Users' }]}
@@ -121,11 +130,11 @@ export default function AdminUsersPage() {
       )}
 
       {error && (
-        <ApiErrorBanner message={getErrorMessage(error)} onRetry={() => refetch()} retrying={isLoading} />
+        <ApiErrorBanner message={getErrorMessage(error)} onRetry={() => refetch()} retrying={isFetching} />
       )}
 
       {isLoading ? (
-        <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
+        <ListPageSkeleton />
       ) : rows.length === 0 && !error ? (
         <EmptyState
           icon={Users}
@@ -138,10 +147,14 @@ export default function AdminUsersPage() {
           <DataTable
             data={rows}
             columns={columns}
+            loading={isFetching}
             searchPlaceholder="Search by name or email…"
             searchKeys={[(r) => r.name, (r) => r.email]}
             exportFilename="users.csv"
             pageSize={15}
+            serverPagination={
+              meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
+            }
           />
         </div>
       )}

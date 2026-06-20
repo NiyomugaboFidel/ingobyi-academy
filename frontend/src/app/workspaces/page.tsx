@@ -8,6 +8,7 @@ import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { CardGridSkeleton } from '@/components/dashboard/table-skeleton';
 import { switchOrg } from '@/lib/api/auth';
 import { applyAuthSession } from '@/lib/api/session';
 import { listMyMemberships } from '@/lib/api/organizations';
@@ -65,7 +66,7 @@ export default function WorkspacesPage() {
       />
 
       {isLoading ? (
-        <div className="dash-card h-40 animate-pulse bg-brand-canvas" />
+        <CardGridSkeleton count={3} columns="sm:grid-cols-2 lg:grid-cols-3" />
       ) : memberships.length === 0 ? (
         <EmptyState
           icon={Building2}

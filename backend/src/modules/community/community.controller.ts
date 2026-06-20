@@ -11,12 +11,18 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { Public } from '../../common/decorators/public.decorator';
+import {
+  CommunityAdminPostsQueryDto,
+  CommunityFeedQueryDto,
+} from './dto/community-query.dto';
 import { AuthenticatedUser } from '../../common/interfaces/request-with-user.interface';
 import { ParseCuidPipe } from '../../common/pipes/parse-cuid.pipe';
 import { CommunityService } from './community.service';
-import { CreateCommentDto } from './dto/create-comment.dto';
+import { FollowListQueryDto } from './dto/follow-list-query.dto';
+import { PeopleSearchQueryDto } from './dto/people-search-query.dto';
 import { CreatePostDto } from './dto/create-post.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 @ApiTags('Community')
 @Controller('community')
@@ -24,12 +30,10 @@ export class CommunityController {
   constructor(private readonly communityService: CommunityService) {}
 
   @Get('feed')
+  @Public()
   @ApiOperation({ summary: 'Global or org feed' })
-  feed(
-    @Query('orgId') orgId: string | undefined,
-    @Query() pagination: PaginationDto,
-  ) {
-    return this.communityService.feed(orgId, pagination);
+  feed(@Query() query: CommunityFeedQueryDto) {
+    return this.communityService.feed(query.orgId, query);
   }
 
   @Post('posts')
@@ -55,11 +59,8 @@ export class CommunityController {
   @Get('admin/posts')
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'List posts for moderation' })
-  adminPosts(
-    @Query() pagination: PaginationDto,
-    @Query('orgId') orgId?: string,
-  ) {
-    return this.communityService.adminListPosts(pagination, orgId);
+  adminPosts(@Query() query: CommunityAdminPostsQueryDto) {
+    return this.communityService.adminListPosts(query, query.orgId);
   }
 
   @Delete('admin/posts/:id')
@@ -116,18 +117,63 @@ export class CommunityController {
   }
 
   @Get('leaderboard')
+  @Public()
   @ApiOperation({ summary: 'Top learners by points' })
   leaderboard() {
     return this.communityService.leaderboard();
   }
 
+<<<<<<< HEAD
   @Get('search')
   @ApiOperation({ summary: 'Search learners by name or email' })
   searchUsers(@Query('q') q: string, @Query('limit') limit?: string) {
     return this.communityService.searchUsers(q, limit ? Number(limit) : 20);
+=======
+  @Get('people/search')
+  @ApiOperation({ summary: 'Search community members' })
+  searchPeople(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: PeopleSearchQueryDto,
+  ) {
+    return this.communityService.searchPeople(user.userId, query.q, query);
+  }
+
+  @Get('people/suggestions')
+  @ApiOperation({ summary: 'People you may know' })
+  peopleSuggestions(@CurrentUser() user: AuthenticatedUser) {
+    return this.communityService.peopleSuggestions(user.userId, 12);
+  }
+
+  @Get('people/popular')
+  @Public()
+  @ApiOperation({ summary: 'Popular community members' })
+  popularPeople(@CurrentUser() user?: AuthenticatedUser) {
+    return this.communityService.popularPeople(user?.userId, 10);
+  }
+
+  @Get(':userId/followers')
+  @Public()
+  @ApiOperation({ summary: 'List profile followers' })
+  followers(
+    @Param('userId', ParseCuidPipe) userId: string,
+    @Query() query: FollowListQueryDto,
+  ) {
+    return this.communityService.followers(userId, query);
+  }
+
+  @Get(':userId/following')
+  @Public()
+  @ApiOperation({ summary: 'List users this profile follows' })
+  following(
+    @Param('userId', ParseCuidPipe) userId: string,
+    @Query() query: FollowListQueryDto,
+  ) {
+    return this.communityService.following(userId, query);
+>>>>>>> 0e94140 (add cetificate)
   }
 
   @Get(':userId/profile')
+  @Public()
   @ApiOperation({ summary: 'Public learner profile' })
   profile(@Param('userId', ParseCuidPipe) userId: string) {
     return this.communityService.profile(userId);

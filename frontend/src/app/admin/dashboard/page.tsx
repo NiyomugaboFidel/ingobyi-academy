@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
           actions={
             <>
               <Button asChild size="sm" className="rounded-full bg-white text-brand-green hover:bg-white/90">
-                <Link href="/admin/courses"><Plus className="mr-1.5 h-4 w-4" /> New course</Link>
+                <Link href="/trainer/courses/new"><Plus className="mr-1.5 h-4 w-4" /> New course</Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="rounded-full border-white/30 bg-transparent text-white hover:bg-white/10">
                 <Link href="/admin/join-requests"><UserPlus className="mr-1.5 h-4 w-4" /> Join requests</Link>

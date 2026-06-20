@@ -65,6 +65,10 @@ export function listSubmissions(assignmentId: string, token: string) {
   return apiRequest<Submission[]>(`/submissions/${assignmentId}`, { token });
 }
 
+export function getMySubmission(assignmentId: string, token: string) {
+  return apiRequest<Submission | null>(`/submissions/${assignmentId}/mine`, { token });
+}
+
 export function gradeSubmission(
   submissionId: string,
   token: string,

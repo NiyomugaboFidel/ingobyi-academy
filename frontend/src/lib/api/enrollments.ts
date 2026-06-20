@@ -25,10 +25,12 @@ export async function enroll(courseId: string, token: string) {
 }
 
 export function checkEnrollment(courseId: string, token: string) {
-  return apiRequest<{ enrolled: boolean; enrollmentId?: string }>(
-    `/enrollments/${courseId}/check`,
-    { token },
-  );
+  return apiRequest<{
+    enrolled: boolean;
+    status: string | null;
+    enrollmentId?: string;
+    completedAt?: string | null;
+  }>(`/enrollments/${courseId}/check`, { token });
 }
 
 export function unenroll(courseId: string, token: string) {

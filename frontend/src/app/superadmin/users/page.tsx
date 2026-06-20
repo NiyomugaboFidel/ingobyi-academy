@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Users, UserCheck, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
@@ -18,6 +18,7 @@ import {
   type SuperadminUser,
 } from '@/lib/api/superadmin';
 import { useAuthStore } from '@/lib/auth/store';
+import { usePaginatedQuery } from '@/lib/hooks/use-paginated-query';
 
 type UserRow = SuperadminUser & { name: string };
 
@@ -34,11 +35,17 @@ export default function SuperadminUsersPage() {
   const queryClient = useQueryClient();
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { rows, meta, page, setPage, isLoading, isFetching, error, refetch } = usePaginatedQuery<SuperadminUser>({
     queryKey: ['superadmin', 'users'],
-    queryFn: () => listSuperadminUsers(token),
+    queryFn: (p, limit) => listSuperadminUsers(token, p, limit),
+    pageSize: 15,
     enabled: !!token,
   });
+
+  const tableRows: UserRow[] = rows.map((u) => ({
+    ...u,
+    name: `${u.firstName} ${u.lastName}`.trim(),
+  }));
 
   async function toggleActive(user: UserRow) {
     setActingId(user.id);
@@ -57,11 +64,6 @@ export default function SuperadminUsersPage() {
       setActingId(null);
     }
   }
-
-  const rows: UserRow[] = (data?.data ?? []).map((u) => ({
-    ...u,
-    name: `${u.firstName} ${u.lastName}`,
-  }));
 
   const columns: DataColumn<UserRow>[] = [
     {
@@ -131,7 +133,7 @@ export default function SuperadminUsersPage() {
       
         <PageHeader
           title="Platform users"
-          description={`Manage all ${data?.meta.total ?? ''} registered accounts across the platform.`}
+          description={`Manage all ${meta?.total ?? tableRows.length} registered accounts across the platform.`}
           breadcrumbs={[
             { label: 'Superadmin', href: '/superadmin/dashboard' },
             { label: 'Users' },
@@ -139,16 +141,10 @@ export default function SuperadminUsersPage() {
         />
 
         {error && (
-          <ApiErrorBanner
-            message={getErrorMessage(error)}
-            onRetry={() => refetch()}
-            retrying={isLoading}
-          />
+          <ApiErrorBanner message={getErrorMessage(error)} onRetry={() => refetch()} retrying={isFetching} />
         )}
 
-        {isLoading ? (
-          <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
-        ) : rows.length === 0 && !error ? (
+        {!isLoading && tableRows.length === 0 && !error ? (
           <EmptyState
             icon={Users}
             title="No users found"
@@ -158,12 +154,16 @@ export default function SuperadminUsersPage() {
         ) : (
           <div className="dash-table-fill">
           <DataTable
-            data={rows}
+            data={tableRows}
             columns={columns}
+            loading={isLoading || isFetching}
             searchPlaceholder="Search by name or email…"
             searchKeys={[(r) => r.name, (r) => r.email]}
             exportFilename="platform-users.csv"
             pageSize={15}
+            serverPagination={
+              meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
+            }
           />
           </div>
         )}

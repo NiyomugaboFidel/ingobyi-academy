@@ -16,6 +16,9 @@ import type { Course } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/api/errors';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
+import { SearchSuggestionsPanel } from '@/components/search/search-suggestions-panel';
+import { saveRecentSearch } from '@/lib/search/history';
+import { useSearchSuggestions } from '@/lib/search/use-search-suggestions';
 
 /* ────────────────────── constants ────────────────────── */
 const LEVELS = [
@@ -227,6 +230,17 @@ function SearchPageInner() {
   const [sortId, setSortId] = useState(() => params.get('sort') ?? 'relevance');
   const [showSort, setShowSort] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const {
+    suggestions,
+    loading: suggestionsLoading,
+    recentSearches,
+    refreshRecent,
+    clearRecent,
+    removeRecent,
+  } = useSearchSuggestions(searchInput, suggestOpen || !q);
 
   // filter state
   const [ratingMin, setRatingMin] = useState<number | null>(() => {
@@ -365,6 +379,7 @@ function SearchPageInner() {
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (!sortRef.current?.contains(e.target as Node)) setShowSort(false);
+      if (!searchWrapRef.current?.contains(e.target as Node)) setSuggestOpen(false);
     };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
@@ -373,7 +388,10 @@ function SearchPageInner() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setPage(1);
+    setSuggestOpen(false);
     const trimmed = searchInput.trim();
+    if (trimmed) saveRecentSearch(trimmed);
+    refreshRecent();
     const next = new URLSearchParams();
     if (trimmed) next.set('q', trimmed);
     const qs = next.toString();
@@ -646,18 +664,52 @@ function SearchPageInner() {
             </div>
 
             {/* Search bar (in-page) */}
-            <form onSubmit={handleSearch} className="mb-5 flex items-center gap-2 rounded border-2 border-brand-green bg-white px-3 py-2">
-              <Search className="h-4 w-4 shrink-0 text-gray-400" />
-              <input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search courses…"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400"
-              />
-              <Button type="submit" className="h-8 rounded-none bg-brand-green px-4 text-xs font-bold text-white hover:bg-brand-green-dark">
-                Search
-              </Button>
-            </form>
+            <div ref={searchWrapRef} className="relative mb-5">
+              <form onSubmit={handleSearch} className="flex items-center gap-2 rounded border-2 border-brand-green bg-white px-3 py-2">
+                <Search className="h-4 w-4 shrink-0 text-gray-400" />
+                <input
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    setSuggestOpen(true);
+                  }}
+                  onFocus={() => setSuggestOpen(true)}
+                  placeholder="Search courses…"
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400"
+                  aria-expanded={suggestOpen}
+                />
+                <Button type="submit" className="h-8 rounded-none bg-brand-green px-4 text-xs font-bold text-white hover:bg-brand-green-dark">
+                  Search
+                </Button>
+              </form>
+
+              {suggestOpen && (
+                <div className="absolute left-0 right-0 top-full z-40 mt-2">
+                  <SearchSuggestionsPanel
+                    query={searchInput}
+                    suggestions={suggestions}
+                    recentSearches={recentSearches}
+                    loading={suggestionsLoading}
+                    onSelect={() => setSuggestOpen(false)}
+                    onClearRecent={clearRecent}
+                    onRemoveRecent={removeRecent}
+                  />
+                </div>
+              )}
+            </div>
+
+            {!q && !suggestOpen && suggestions && !loading && (
+              <div className="mb-6">
+                <SearchSuggestionsPanel
+                  query=""
+                  suggestions={suggestions}
+                  recentSearches={recentSearches}
+                  loading={suggestionsLoading}
+                  onClearRecent={clearRecent}
+                  onRemoveRecent={removeRecent}
+                />
+              </div>
+            )}
 
             {error && (
               <ApiErrorBanner

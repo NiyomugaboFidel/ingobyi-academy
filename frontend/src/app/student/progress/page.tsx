@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { CardGridSkeleton } from '@/components/dashboard/table-skeleton';
 import { myEnrollments } from '@/lib/api/enrollments';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '@/lib/auth/store';
@@ -56,7 +57,7 @@ export default function StudentProgressPage() {
       <section>
         <h2 className="mb-3 text-sm font-semibold text-brand-ink">Your courses</h2>
         {isLoading ? (
-          <div className="dash-card h-48 animate-pulse bg-brand-canvas" />
+          <CardGridSkeleton count={3} columns="sm:grid-cols-2 lg:grid-cols-3" />
         ) : enrollments.length === 0 && !error ? (
           <EmptyState
             icon={BookOpen}

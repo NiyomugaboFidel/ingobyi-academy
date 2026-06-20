@@ -1,17 +1,20 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Users } from 'lucide-react';
+import { Sparkles, Users } from 'lucide-react';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { ListPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { listTrainerStudents } from '@/lib/api/courses';
 import { getErrorMessage } from '@/lib/api/errors';
 import { useAuthStore } from '@/lib/auth/store';
 
 type StudentRow = {
+  userId: string;
   id: string;
   name: string;
   email: string;
@@ -30,6 +33,7 @@ export default function TrainerStudentsPage() {
   });
 
   const rows: StudentRow[] = enrollments.map((e) => ({
+    userId: e.userId,
     id: e.id,
     name: `${e.user.firstName} ${e.user.lastName}`,
     email: e.user.email,
@@ -62,6 +66,18 @@ export default function TrainerStudentsPage() {
       sortValue: (r) => r.status,
     },
     { id: 'enrolled', header: 'Enrolled', accessor: (r) => r.enrolledAt, sortValue: (r) => r.enrolledAt },
+    {
+      id: 'actions',
+      header: '',
+      accessor: (r) => (
+        <Link
+          href={`/users/${r.userId}?tab=achievements`}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> Achievements
+        </Link>
+      ),
+    },
   ];
 
   return (
@@ -77,7 +93,7 @@ export default function TrainerStudentsPage() {
       )}
 
       {isLoading ? (
-        <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
+        <ListPageSkeleton />
       ) : rows.length === 0 && !error ? (
         <EmptyState
           icon={Users}

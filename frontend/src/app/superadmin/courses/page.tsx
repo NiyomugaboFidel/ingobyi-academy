@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+<<<<<<< HEAD
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Check, Eye, ExternalLink, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+=======
+import { BookOpen, ExternalLink } from 'lucide-react';
+>>>>>>> 0e94140 (add cetificate)
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
@@ -16,6 +20,7 @@ import { approveCourse, rejectCourse } from '@/lib/api/superadmin';
 import { getErrorMessage } from '@/lib/api/errors';
 import type { Course } from '@/lib/api/types';
 import { useAuthStore } from '@/lib/auth/store';
+import { usePaginatedQuery } from '@/lib/hooks/use-paginated-query';
 
 const STATUS_STYLES: Record<string, string> = {
   PUBLISHED: 'border border-green-200 bg-green-50 text-green-800',
@@ -29,12 +34,14 @@ export default function SuperadminCoursesPage() {
   const queryClient = useQueryClient();
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { rows, meta, page, setPage, isLoading, isFetching, error, refetch } = usePaginatedQuery<Course>({
     queryKey: ['superadmin', 'courses'],
-    queryFn: () => listCourses(token, 1, 100),
+    queryFn: (p, limit) => listCourses(token, p, limit),
+    pageSize: 15,
     enabled: !!token,
   });
 
+<<<<<<< HEAD
   const rows = data?.data ?? [];
   const pendingCount = rows.filter((c) => c.status === 'PENDING_REVIEW').length;
 
@@ -57,6 +64,8 @@ export default function SuperadminCoursesPage() {
     }
   }
 
+=======
+>>>>>>> 0e94140 (add cetificate)
   const columns: DataColumn<Course>[] = [
     {
       id: 'title',
@@ -143,6 +152,7 @@ export default function SuperadminCoursesPage() {
 
   return (
     <DashboardShell allowedRoles={['SUPERADMIN']}>
+<<<<<<< HEAD
       <PageHeader
         title="All courses"
         description={
@@ -175,9 +185,20 @@ export default function SuperadminCoursesPage() {
           message={getErrorMessage(error)}
           onRetry={() => refetch()}
           retrying={isLoading}
+=======
+      
+        <PageHeader
+          title="All courses"
+          description={`Platform-wide course registry — ${meta?.total ?? rows.length} total.`}
+          breadcrumbs={[
+            { label: 'Superadmin', href: '/superadmin/dashboard' },
+            { label: 'Courses' },
+          ]}
+>>>>>>> 0e94140 (add cetificate)
         />
       )}
 
+<<<<<<< HEAD
       {isLoading ? (
         <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
       ) : rows.length === 0 && !error ? (
@@ -198,6 +219,35 @@ export default function SuperadminCoursesPage() {
           pageSize={15}
         />
       )}
+=======
+        {error && (
+          <ApiErrorBanner message={getErrorMessage(error)} onRetry={() => refetch()} retrying={isFetching} />
+        )}
+
+        {!isLoading && rows.length === 0 && !error ? (
+          <EmptyState
+            icon={BookOpen}
+            title="No courses yet"
+            description="Courses created by trainers and organizations will appear here."
+            primaryAction={{ label: 'View catalog', href: '/catalog' }}
+            secondaryAction={{ label: 'Pending approvals', href: '/superadmin/course-approvals' }}
+          />
+        ) : (
+          <DataTable
+            data={rows}
+            columns={columns}
+            loading={isLoading || isFetching}
+            searchPlaceholder="Search courses…"
+            searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
+            exportFilename="all-courses.csv"
+            pageSize={15}
+            serverPagination={
+              meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
+            }
+          />
+        )}
+      
+>>>>>>> 0e94140 (add cetificate)
     </DashboardShell>
   );
 }

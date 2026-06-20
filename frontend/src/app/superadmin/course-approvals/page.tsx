@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Check, X, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { ListPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { Button } from '@/components/ui/button';
 import { getErrorMessage } from '@/lib/api/errors';
 import {
@@ -19,15 +20,26 @@ import {
   type PendingCourse,
 } from '@/lib/api/superadmin';
 import { useAuthStore } from '@/lib/auth/store';
+import { usePaginatedQuery } from '@/lib/hooks/use-paginated-query';
 
 export default function SuperadminCourseApprovalsPage() {
   const token = useAuthStore((s) => s.accessToken)!;
   const queryClient = useQueryClient();
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const { data: courses = [], isLoading, error, refetch } = useQuery({
+  const {
+    rows: courses,
+    meta,
+    page,
+    setPage,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = usePaginatedQuery<PendingCourse>({
     queryKey: ['superadmin', 'courses-pending'],
-    queryFn: () => listPendingCourses(token),
+    queryFn: (p, limit) => listPendingCourses(token, p, limit),
+    pageSize: 10,
     enabled: !!token,
   });
 
@@ -125,45 +137,47 @@ export default function SuperadminCourseApprovalsPage() {
 
   return (
     <DashboardShell allowedRoles={['SUPERADMIN']}>
-      
-        <PageHeader
-          title="Course approvals"
-          description="Review and approve courses submitted for publication."
-          breadcrumbs={[
-            { label: 'Superadmin', href: '/superadmin/dashboard' },
-            { label: 'Approvals' },
-          ]}
+      <PageHeader
+        title="Course approvals"
+        description="Review and approve courses submitted for publication."
+        breadcrumbs={[
+          { label: 'Superadmin', href: '/superadmin/dashboard' },
+          { label: 'Approvals' },
+        ]}
+      />
+
+      {error && (
+        <ApiErrorBanner
+          message={getErrorMessage(error)}
+          onRetry={() => refetch()}
+          retrying={isFetching}
         />
+      )}
 
-        {error && (
-          <ApiErrorBanner
-            message={getErrorMessage(error)}
-            onRetry={() => refetch()}
-            retrying={isLoading}
-          />
-        )}
-
-        {isLoading ? (
-          <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
-        ) : courses.length === 0 && !error ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No pending courses"
-            description="Courses awaiting review will appear here when trainers submit them for approval."
-            primaryAction={{ label: 'Browse catalog', href: '/catalog' }}
-            secondaryAction={{ label: 'Dashboard', href: '/superadmin/dashboard' }}
-          />
-        ) : (
-          <DataTable
-            data={courses}
-            columns={columns}
-            searchPlaceholder="Search pending courses…"
-            searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
-            exportFilename="pending-courses.csv"
-            pageSize={10}
-          />
-        )}
-      
+      {isLoading ? (
+        <ListPageSkeleton />
+      ) : courses.length === 0 && !error ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No pending courses"
+          description="Courses awaiting review will appear here when trainers submit them for approval."
+          primaryAction={{ label: 'Browse catalog', href: '/catalog' }}
+          secondaryAction={{ label: 'Dashboard', href: '/superadmin/dashboard' }}
+        />
+      ) : (
+        <DataTable
+          data={courses}
+          columns={columns}
+          loading={isFetching}
+          searchPlaceholder="Search pending courses…"
+          searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
+          exportFilename="pending-courses.csv"
+          pageSize={10}
+          serverPagination={
+            meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
+          }
+        />
+      )}
     </DashboardShell>
   );
 }

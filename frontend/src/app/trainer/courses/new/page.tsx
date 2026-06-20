@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { DraftBadge } from '@/components/ui/draft-badge';
 import { createCourse } from '@/lib/api/courses';
 import { useAuthStore } from '@/lib/auth/store';
-import { useActiveOrg } from '@/lib/hooks/use-active-org';
 import { draftKey } from '@/lib/drafts/storage';
 import { useObjectDraft } from '@/lib/drafts/use-object-draft';
 import { getErrorMessage } from '@/lib/api/errors';
@@ -30,7 +29,6 @@ const INITIAL: CourseDraft = {
 export default function NewCoursePage() {
   const router = useRouter();
   const token = useAuthStore((s) => s.accessToken)!;
-  const { orgId } = useActiveOrg();
 
   const { value: form, setValue: setForm, clearDraft, restored, lastSaved } = useObjectDraft<CourseDraft>(
     draftKey('course', 'new'),
@@ -46,7 +44,6 @@ export default function NewCoursePage() {
     try {
       const course = await createCourse(token, {
         title: form.title.trim(),
-        orgId,
         description: form.description.trim() || undefined,
         shortDescription: form.shortDescription.trim() || undefined,
         price: form.price ? Number(form.price) : undefined,
@@ -60,7 +57,7 @@ export default function NewCoursePage() {
   }
 
   return (
-    <DashboardShell allowedRoles={['TRAINER', 'SUPERADMIN']}>
+    <DashboardShell allowedRoles={['TRAINER', 'ADMIN', 'SUPERADMIN']}>
       <PageHeader
         title="Create course"
         description="Start with the basics. You can add modules and lessons next."

@@ -52,9 +52,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuthStore, getEffectiveRole, getRoleHome } from '@/lib/auth/store';
 import { logout } from '@/lib/api/auth';
-import { searchCatalog } from '@/lib/api/catalog';
 import { getErrorMessage } from '@/lib/api/errors';
-import type { Course, User as AuthUser } from '@/lib/api/types';
+import { saveRecentSearch } from '@/lib/search/history';
+import { useSearchSuggestions } from '@/lib/search/use-search-suggestions';
+import { SearchSuggestionsPanel } from '@/components/search/search-suggestions-panel';
+import type { User as AuthUser } from '@/lib/api/types';
 
 /* ────────────────────── constants ────────────────────── */
 
@@ -147,9 +149,6 @@ function NavSearch({ className, pill = false }: { className?: string; pill?: boo
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [q, setQ] = useState('');
-  const [debounced, setDebounced] = useState('');
-  const [suggestions, setSuggestions] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -163,38 +162,14 @@ function NavSearch({ className, pill = false }: { className?: string; pill?: boo
     }
   }, [pathname, urlQ]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(q.trim()), 500);
-    return () => window.clearTimeout(timer);
-  }, [q]);
-
-  const suggestEnabled = debounced.length >= 2;
-
-  useEffect(() => {
-    if (!suggestEnabled) {
-      setSuggestions([]);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    searchCatalog({ q: debounced, limit: '8' })
-      .then((result) => {
-        if (!cancelled) setSuggestions(result.data);
-      })
-      .catch(() => {
-        if (!cancelled) setSuggestions([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debounced, suggestEnabled]);
+  const {
+    suggestions,
+    loading,
+    recentSearches,
+    refreshRecent,
+    clearRecent,
+    removeRecent,
+  } = useSearchSuggestions(q, suggestOpen);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -207,9 +182,13 @@ function NavSearch({ className, pill = false }: { className?: string; pill?: boo
   const submitSearch = (e?: FormEvent) => {
     e?.preventDefault();
     const term = q.trim();
+    if (term) saveRecentSearch(term);
+    refreshRecent();
     setSuggestOpen(false);
     router.push(term ? `/search?q=${encodeURIComponent(term)}` : '/search');
   };
+
+  const showSuggestions = suggestOpen && (loading || recentSearches.length > 0 || !!suggestions);
 
   return (
     <div ref={wrapRef} className={cn('relative min-w-0', className)}>
@@ -236,34 +215,25 @@ function NavSearch({ className, pill = false }: { className?: string; pill?: boo
               : 'h-10 rounded-lg border border-brand-green/12 bg-brand-page-bg/80 pl-10 pr-4 text-sm',
           )}
           aria-autocomplete="list"
-          aria-expanded={suggestOpen && (loading || suggestions.length > 0)}
+          aria-expanded={showSuggestions}
           aria-label="Search courses"
         />
         <button type="submit" className="sr-only">
           Search
         </button>
       </form>
-      {suggestOpen && suggestEnabled && (loading || suggestions.length > 0) ? (
-        <div className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-80 overflow-auto rounded-lg border border-brand-green/8 bg-white py-1 text-brand-ink shadow-md">
-          {loading ? (
-            <p className="px-3 py-2 text-xs text-brand-ink/60">Loading…</p>
-          ) : (
-            suggestions.map((course) => (
-              <Link
-                key={course.id}
-                href={`/catalog/${course.slug}`}
-                className="block px-3 py-2.5 text-sm transition hover:bg-brand-green/6"
-                onClick={() => setSuggestOpen(false)}
-              >
-                <span className="line-clamp-1 font-semibold text-brand-ink">{course.title}</span>
-                {course.category?.name ? (
-                  <span className="line-clamp-1 text-[10px] font-medium text-brand-green/80">
-                    {course.category.name}
-                  </span>
-                ) : null}
-              </Link>
-            ))
-          )}
+      {showSuggestions ? (
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1">
+          <SearchSuggestionsPanel
+            query={q}
+            suggestions={suggestions}
+            recentSearches={recentSearches}
+            loading={loading}
+            compact
+            onSelect={() => setSuggestOpen(false)}
+            onClearRecent={clearRecent}
+            onRemoveRecent={removeRecent}
+          />
         </div>
       ) : null}
     </div>

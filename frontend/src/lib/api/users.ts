@@ -1,11 +1,8 @@
 import { apiRequest } from './client';
 import type { User } from './types';
+import type { UnifiedAchievement } from './achievements';
 
-export interface Achievement {
-  id: string;
-  earnedAt: string;
-  definition: { id: string; name: string; description?: string; iconUrl?: string | null; points?: number };
-}
+export type Achievement = UnifiedAchievement;
 
 export interface PublicCourse {
   id: string;

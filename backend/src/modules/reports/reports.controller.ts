@@ -11,7 +11,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { ReportsListQueryDto } from './dto/reports-list-query.dto';
 import { AuthenticatedUser } from '../../common/interfaces/request-with-user.interface';
 import { ParseCuidPipe } from '../../common/pipes/parse-cuid.pipe';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -37,8 +37,8 @@ export class ReportsController {
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'List all reports (admin)' })
-  listAll(@Query() pagination: PaginationDto, @Query('orgId') orgId?: string) {
-    return this.reportsService.listAll(pagination, orgId);
+  listAll(@Query() query: ReportsListQueryDto) {
+    return this.reportsService.listAll(query, query.orgId);
   }
 
   @Patch(':id/resolve')

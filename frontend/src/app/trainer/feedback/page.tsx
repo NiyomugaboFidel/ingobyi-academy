@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { ListPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { listCourseReviews } from '@/lib/api/catalog';
 import { listCourses } from '@/lib/api/courses';
 import { getErrorMessage } from '@/lib/api/errors';
@@ -64,7 +65,7 @@ export default function TrainerFeedbackPage() {
       )}
 
       {isLoading ? (
-        <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
+        <ListPageSkeleton />
       ) : reviews.length === 0 && !error ? (
         <EmptyState
           icon={MessageSquare}

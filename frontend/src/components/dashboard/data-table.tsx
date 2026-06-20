@@ -6,6 +6,7 @@ import {
   ChevronsUpDown, Columns3, Filter, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TableSkeleton } from '@/components/dashboard/table-skeleton';
 import { cn } from '@/lib/utils';
 
 export interface DataColumn<T> {
@@ -13,6 +14,8 @@ export interface DataColumn<T> {
   header: string;
   accessor: (row: T) => string | number | React.ReactNode;
   sortValue?: (row: T) => string | number;
+  filterValue?: (row: T) => string;
+  filterOptions?: { value: string; label: string }[];
   filterable?: boolean;
   defaultVisible?: boolean;
   className?: string;
@@ -29,6 +32,13 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   toolbar?: React.ReactNode;
   compact?: boolean;
+  loading?: boolean;
+  serverPagination?: {
+    page: number;
+    totalPages: number;
+    total: number;
+    onPageChange: (page: number) => void;
+  };
 }
 
 type SortDir = 'asc' | 'desc' | null;
@@ -63,6 +73,8 @@ export function DataTable<T extends { id?: string }>({
   emptyMessage = 'No data found.',
   toolbar,
   compact = false,
+  loading = false,
+  serverPagination,
 }: DataTableProps<T>) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState('');
@@ -77,6 +89,35 @@ export function DataTable<T extends { id?: string }>({
   const [showFilters, setShowFilters] = useState(false);
 
   const activeCols = columns.filter((c) => visibleCols[c.id] !== false);
+
+  const filterOptionsByCol = useMemo(() => {
+    const map: Record<string, { value: string; label: string }[]> = {};
+    for (const col of activeCols) {
+      if (col.filterable === false) continue;
+      if (col.filterOptions?.length) {
+        map[col.id] = col.filterOptions;
+        continue;
+      }
+      const unique = new Set<string>();
+      for (const row of data) {
+        const raw = col.filterValue
+          ? col.filterValue(row)
+          : col.sortValue
+            ? col.sortValue(row)
+            : col.accessor(row);
+        const value =
+          typeof raw === 'string' || typeof raw === 'number'
+            ? String(raw).trim()
+            : '';
+        if (value) unique.add(value);
+      }
+      const values = [...unique].sort((a, b) => a.localeCompare(b));
+      if (values.length > 0) {
+        map[col.id] = values.map((value) => ({ value, label: value }));
+      }
+    }
+    return map;
+  }, [data, activeCols, columns]);
 
   const filtered = useMemo(() => {
     let rows = [...data];
@@ -94,8 +135,18 @@ export function DataTable<T extends { id?: string }>({
       if (!val) continue;
       const col = columns.find((c) => c.id === colId);
       if (!col) continue;
-      const q = val.toLowerCase();
-      rows = rows.filter((row) => String(col.accessor(row) ?? '').toLowerCase().includes(q));
+      rows = rows.filter((row) => {
+        const raw = col.filterValue
+          ? col.filterValue(row)
+          : col.sortValue
+            ? col.sortValue(row)
+            : col.accessor(row);
+        const cell =
+          typeof raw === 'string' || typeof raw === 'number'
+            ? String(raw)
+            : String(col.accessor(row) ?? '');
+        return cell === val;
+      });
     }
     if (sortCol && sortDir) {
       const col = columns.find((c) => c.id === sortCol);
@@ -111,8 +162,15 @@ export function DataTable<T extends { id?: string }>({
     return rows;
   }, [data, search, sortCol, sortDir, colFilters, activeCols, columns, searchKeys]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+  const isServerMode = !!serverPagination;
+  const totalPages = isServerMode
+    ? Math.max(1, serverPagination.totalPages)
+    : Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPageIndex = isServerMode ? serverPagination.page - 1 : page;
+  const paged = isServerMode
+    ? filtered
+    : filtered.slice(page * pageSize, (page + 1) * pageSize);
+  const totalRows = isServerMode ? serverPagination.total : filtered.length;
 
   function toggleSort(colId: string) {
     if (sortCol !== colId) { setSortCol(colId); setSortDir('asc'); }
@@ -205,18 +263,29 @@ export function DataTable<T extends { id?: string }>({
         )}
 
         {toolbar}
-        <span className="ml-auto text-[11px] text-brand-muted">{filtered.length} rows</span>
+        <span className="ml-auto text-[11px] text-brand-muted">
+          {loading ? 'Loading…' : `${totalRows} rows`}
+        </span>
       </div>
 
       {/* Column filters */}
       {showFilters && (
         <div className="flex flex-wrap gap-2 border-b border-brand-green/8 bg-brand-canvas px-3 py-2">
-          {activeCols.filter((c) => c.filterable !== false).map((c) => (
-            <input key={c.id} value={colFilters[c.id] ?? ''}
-              onChange={(e) => { setColFilters((p) => ({ ...p, [c.id]: e.target.value })); setPage(0); }}
-              placeholder={`Filter ${c.header}…`}
-              className="rounded border border-brand-green/10 bg-white px-2.5 py-1 text-[11px] outline-none focus:border-brand-green"
-            />
+          {activeCols.filter((c) => c.filterable !== false && filterOptionsByCol[c.id]?.length).map((c) => (
+            <select
+              key={c.id}
+              value={colFilters[c.id] ?? ''}
+              onChange={(e) => {
+                setColFilters((p) => ({ ...p, [c.id]: e.target.value }));
+                setPage(0);
+              }}
+              className="min-w-[140px] rounded border border-brand-green/10 bg-white px-2.5 py-1.5 text-[11px] outline-none focus:border-brand-green"
+            >
+              <option value="">All {c.header}</option>
+              {filterOptionsByCol[c.id]!.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           ))}
         </div>
       )}
@@ -237,7 +306,9 @@ export function DataTable<T extends { id?: string }>({
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-green/6">
-            {paged.length === 0 ? (
+            {loading ? (
+              <TableSkeleton rows={pageSize} columns={activeCols.length} compact={compact} />
+            ) : paged.length === 0 ? (
               <tr><td colSpan={activeCols.length} className="px-3 py-12 text-center text-sm text-brand-muted">{emptyMessage}</td></tr>
             ) : paged.map((row, i) => (
               <tr key={(row as { id?: string }).id ?? i} className="transition-colors hover:bg-brand-green/[0.02]">
@@ -253,16 +324,36 @@ export function DataTable<T extends { id?: string }>({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {(totalPages > 1 || isServerMode) && (
         <div className="flex items-center justify-between border-t border-brand-green/8 px-3 py-2.5">
           <p className="text-[11px] text-brand-muted">
-            Page {page + 1} of {totalPages} · {filtered.length} total
+            Page {currentPageIndex + 1} of {totalPages} · {totalRows} total
           </p>
           <div className="flex gap-1">
-            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" disabled={page === 0}
-              onClick={() => setPage((p) => p - 1)}>Prev</Button>
-            <Button variant="outline" size="sm" className="h-7 px-2 text-xs" disabled={page >= totalPages - 1}
-              onClick={() => setPage((p) => p + 1)}>Next</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={loading || currentPageIndex === 0}
+              onClick={() => {
+                if (isServerMode) serverPagination.onPageChange(serverPagination.page - 1);
+                else setPage((p) => p - 1);
+              }}
+            >
+              Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={loading || currentPageIndex >= totalPages - 1}
+              onClick={() => {
+                if (isServerMode) serverPagination.onPageChange(serverPagination.page + 1);
+                else setPage((p) => p + 1);
+              }}
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}

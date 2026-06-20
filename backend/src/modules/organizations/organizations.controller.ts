@@ -27,6 +27,7 @@ import { ReviewJoinRequestDto } from './dto/review-join-request.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
+import { UpdateCertificateSettingsDto } from './dto/update-certificate-settings.dto';
 import { OrganizationsService } from './organizations.service';
 
 @ApiTags('Organizations')
@@ -108,6 +109,29 @@ export class OrganizationsController {
   ) {
     await this.orgsService.assertOrgAdmin(user, id);
     return this.orgsService.update(id, dto);
+  }
+
+  @Get(':id/certificate-settings')
+  @UseGuards(OrgGuard)
+  @ApiOperation({ summary: 'Certificate signatory settings for PDFs' })
+  async getCertificateSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseCuidPipe) id: string,
+  ) {
+    await this.orgsService.assertOrgAdmin(user, id);
+    return this.orgsService.getCertificateSettings(id);
+  }
+
+  @Patch(':id/certificate-settings')
+  @UseGuards(OrgGuard)
+  @ApiOperation({ summary: 'Update certificate signatory names shown on PDFs' })
+  async updateCertificateSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseCuidPipe) id: string,
+    @Body() dto: UpdateCertificateSettingsDto,
+  ) {
+    await this.orgsService.assertOrgAdmin(user, id);
+    return this.orgsService.updateCertificateSettings(id, dto);
   }
 
   @Delete(':id')

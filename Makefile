@@ -1,10 +1,17 @@
+<<<<<<< HEAD
 .PHONY: help dev docker-check docker-init docker-up docker-down docker-logs docker-seed docker-health docker-rebuild docker-dev docker-dev-down docker-ps compose
+=======
+.PHONY: help dev dev-local docker-check docker-init docker-up docker-down docker-logs docker-seed docker-health docker-rebuild docker-dev docker-dev-down docker-ps compose
+>>>>>>> 0e94140 (add cetificate)
 
 COMPOSE := ./scripts/compose.sh
 COMPOSE_DEV := $(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml
 
 help:
 	@echo "Ingobyi Academy"
+	@echo ""
+	@echo "Local development (no Docker for app):"
+	@echo "  make dev             Start API + frontend (PostgreSQL must be running)"
 	@echo ""
 	@echo "Docker (staging / in-house test):"
 	@echo "  make docker-check    Verify Docker + Compose installed"
@@ -63,6 +70,12 @@ docker-dev:
 
 docker-dev-down:
 	$(COMPOSE_DEV) down
+
+dev:
+	@chmod +x scripts/dev-local.sh
+	@./scripts/dev-local.sh
+
+dev-local: dev
 
 staging-up: docker-up
 staging-down: docker-down

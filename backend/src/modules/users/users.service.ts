@@ -2,12 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { resolveWorkspace } from '../../common/utils/resolve-effective-role';
 import { sanitizeUser } from '../../common/utils/sanitize-user';
+import { AchievementsService } from '../achievements/achievements.service';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievements: AchievementsService,
+  ) {}
 
   async getMe(
     userId: string,
@@ -82,12 +86,8 @@ export class UsersService {
     return user;
   }
 
-  async getAchievements(userId: string) {
-    return this.prisma.studentAchievement.findMany({
-      where: { userId },
-      include: { definition: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  getAchievements(userId: string) {
+    return this.achievements.getUnifiedForUser(userId);
   }
 
   async getCourses(userId: string) {

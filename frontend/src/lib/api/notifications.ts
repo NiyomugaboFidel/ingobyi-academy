@@ -1,4 +1,6 @@
 import { apiRequest } from './client';
+import type { Paginated } from './types';
+import { clampLimit, clampPage } from './pagination';
 
 export type AppNotification = {
   id: string;
@@ -11,9 +13,15 @@ export type AppNotification = {
   createdAt: string;
 };
 
-export function listNotifications(token: string, unreadOnly = false) {
-  const qs = unreadOnly ? '?unread=true' : '';
-  return apiRequest<AppNotification[]>(`/notifications${qs}`, { token });
+export function listNotifications(
+  token: string,
+  params: { unreadOnly?: boolean; page?: number; limit?: number } = {},
+) {
+  const search = new URLSearchParams();
+  search.set('page', String(clampPage(params.page)));
+  search.set('limit', String(clampLimit(params.limit, 20)));
+  if (params.unreadOnly) search.set('unread', 'true');
+  return apiRequest<Paginated<AppNotification>>(`/notifications?${search.toString()}`, { token });
 }
 
 export function markNotificationRead(id: string, token: string) {

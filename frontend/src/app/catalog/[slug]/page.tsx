@@ -4,10 +4,12 @@ import { ExploreNav } from '@/components/layout/explore-nav';
 import { getCourseBySlug } from '@/lib/api/catalog';
 import { EnrollButton } from '@/components/enroll-button';
 import { BookmarkButton } from '@/components/bookmark-button';
+import { CourseReviewsPanel } from '@/components/catalog/course-reviews-panel';
+import { StarRating } from '@/components/ui/star-rating';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import {
   GraduationCap, BookOpen, PlayCircle, Globe2,
-  Clock, Users, BarChart3, Check, Star, Award,
+  Clock, Users, BarChart3, Check, Award,
 } from 'lucide-react';
 import { HtmlContent } from '@/components/editor/html-content';
 
@@ -66,10 +68,12 @@ export default async function CourseDetailPage({
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-            <div className="flex items-center gap-1 text-brand-yellow">
-              {[1,2,3,4,5].map((i) => <Star key={i} className="h-4 w-4 fill-current" />)}
-              <span className="ml-1 font-bold text-brand-yellow">New</span>
-            </div>
+            <StarRating
+              value={course.avgRating}
+              reviewCount={course.reviewCount}
+              showValue
+              className="text-brand-yellow [&_span]:text-white/90"
+            />
             <span className="text-white/60">·</span>
             <span className="text-white/80"><strong className="text-white">{totalLessons}</strong> lessons</span>
             {course.org && (
@@ -186,6 +190,16 @@ export default async function CourseDetailPage({
               </div>
             )}
 
+            <div className="mt-6">
+              <CourseReviewsPanel
+                courseId={course.id}
+                avgRating={course.avgRating}
+                reviewCount={course.reviewCount}
+                ratingDistribution={course.ratingDistribution}
+                reviews={course.reviews}
+              />
+            </div>
+
             {/* Instructor */}
             {course.org && (
               <div className="mt-6 rounded-xl border border-brand-green/12 bg-white p-6 shadow-sm">
@@ -236,7 +250,7 @@ export default async function CourseDetailPage({
 
                 {/* CTA */}
                 <div className="mb-4 flex items-center gap-2">
-                  <EnrollButton courseId={course.id} />
+                  <EnrollButton courseId={course.id} courseSlug={course.slug} />
                   <BookmarkButton courseId={course.id} className="shrink-0 border border-brand-green/15" />
                 </div>
 

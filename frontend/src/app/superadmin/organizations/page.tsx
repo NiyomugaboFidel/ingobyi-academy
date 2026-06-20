@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Building2, ExternalLink } from 'lucide-react';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
@@ -11,17 +12,17 @@ import { EmptyState } from '@/components/dashboard/empty-state';
 import { getErrorMessage } from '@/lib/api/errors';
 import { listSuperadminOrgs, type SuperadminOrg } from '@/lib/api/superadmin';
 import { useAuthStore } from '@/lib/auth/store';
+import { usePaginatedQuery } from '@/lib/hooks/use-paginated-query';
 
 export default function SuperadminOrgsPage() {
   const token = useAuthStore((s) => s.accessToken)!;
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { rows, meta, page, setPage, isLoading, isFetching, error, refetch } = usePaginatedQuery<SuperadminOrg>({
     queryKey: ['superadmin', 'orgs'],
-    queryFn: () => listSuperadminOrgs(token),
+    queryFn: (p, limit) => listSuperadminOrgs(token, p, limit),
+    pageSize: 15,
     enabled: !!token,
   });
-
-  const rows = data?.data ?? [];
 
   const columns: DataColumn<SuperadminOrg>[] = [
     {
@@ -80,7 +81,7 @@ export default function SuperadminOrgsPage() {
       
         <PageHeader
           title="Organizations"
-          description={`All ${data?.meta.total ?? ''} workspaces on the platform.`}
+          description={`All ${meta?.total ?? rows.length} workspaces on the platform.`}
           breadcrumbs={[
             { label: 'Superadmin', href: '/superadmin/dashboard' },
             { label: 'Organizations' },
@@ -88,16 +89,10 @@ export default function SuperadminOrgsPage() {
         />
 
         {error && (
-          <ApiErrorBanner
-            message={getErrorMessage(error)}
-            onRetry={() => refetch()}
-            retrying={isLoading}
-          />
+          <ApiErrorBanner message={getErrorMessage(error)} onRetry={() => refetch()} retrying={isFetching} />
         )}
 
-        {isLoading ? (
-          <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
-        ) : rows.length === 0 && !error ? (
+        {!isLoading && rows.length === 0 && !error ? (
           <EmptyState
             icon={Building2}
             title="No organizations yet"
@@ -108,10 +103,14 @@ export default function SuperadminOrgsPage() {
           <DataTable
             data={rows}
             columns={columns}
+            loading={isLoading || isFetching}
             searchPlaceholder="Search organizations…"
             searchKeys={[(r) => r.name, (r) => r.slug]}
             exportFilename="organizations.csv"
             pageSize={15}
+            serverPagination={
+              meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
+            }
           />
         )}
       

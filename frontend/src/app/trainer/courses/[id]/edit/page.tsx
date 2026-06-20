@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, Plus, Trash2, Upload } from 'lucide-react';
+import { DetailPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { Button } from '@/components/ui/button';
@@ -192,8 +193,8 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
   if (isLoading || !course) {
     return (
-      <DashboardShell allowedRoles={['TRAINER', 'SUPERADMIN']}>
-        <p className="text-sm text-muted-foreground">Loading course…</p>
+      <DashboardShell allowedRoles={['TRAINER', 'ADMIN', 'SUPERADMIN']}>
+        <DetailPageSkeleton />
       </DashboardShell>
     );
   }
@@ -203,7 +204,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   const isPending = status === 'PENDING_REVIEW';
 
   return (
-    <DashboardShell allowedRoles={['TRAINER', 'SUPERADMIN']}>
+    <DashboardShell allowedRoles={['TRAINER', 'ADMIN', 'SUPERADMIN']}>
       <PageHeader
         title={course.title}
         description={`Status: ${status.replace('_', ' ')}`}

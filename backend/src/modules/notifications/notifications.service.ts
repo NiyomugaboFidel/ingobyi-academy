@@ -1,6 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { NotificationType } from '@prisma/client';
+import {
+  buildPaginatedMeta,
+  PaginationDto,
+} from '../../common/dto/pagination.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AppGateway } from '../gateway/app.gateway';
 
@@ -34,12 +38,21 @@ export class NotificationsService implements OnModuleInit {
     return notification;
   }
 
-  async list(userId: string, unreadOnly = false) {
-    return this.prisma.notification.findMany({
-      where: { userId, ...(unreadOnly ? { isRead: false } : {}) },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+  async list(userId: string, pagination: PaginationDto, unreadOnly = false) {
+    const where = { userId, ...(unreadOnly ? { isRead: false } : {}) };
+    const [data, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+    return {
+      data,
+      meta: buildPaginatedMeta(pagination.page, pagination.limit, total),
+    };
   }
 
   async markRead(id: string, userId: string) {

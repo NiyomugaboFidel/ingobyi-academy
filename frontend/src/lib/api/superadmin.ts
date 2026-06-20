@@ -84,8 +84,12 @@ export function deactivateUser(id: string, token: string) {
   return apiRequest(`/superadmin/users/${id}/deactivate`, { method: 'PATCH', token });
 }
 
-export function listPendingCourses(token: string) {
-  return apiRequest<PendingCourse[]>('/superadmin/courses/pending', { token });
+export function listPendingCourses(token: string, page = 1, limit = 20) {
+  const qs = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  return apiRequest<Paginated<PendingCourse>>(`/superadmin/courses/pending?${qs}`, { token });
 }
 
 export function approveCourse(id: string, token: string) {

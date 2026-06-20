@@ -119,6 +119,12 @@ export class CatalogController {
     return this.catalogService.featured();
   }
 
+  @Get('suggestions')
+  @ApiOperation({ summary: 'Search suggestions from catalog data' })
+  suggestions(@Query('q') q?: string) {
+    return this.catalogService.suggestions(q);
+  }
+
   @Get(':slug')
   @ApiOperation({ summary: 'Public course detail' })
   getBySlug(@Param('slug') slug: string) {

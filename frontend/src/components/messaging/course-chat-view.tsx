@@ -12,6 +12,7 @@ import {
   getCourseConversation,
   getSharedAttachments,
 } from '@/lib/api/messaging';
+import { DetailPageSkeleton } from '@/components/dashboard/table-skeleton';
 import { MessagingDashboard } from './messaging-dashboard';
 
 function initials(first: string, last: string) {
@@ -49,7 +50,7 @@ export function CourseChatView({ slug }: CourseChatViewProps) {
   });
 
   if (courseLoading) {
-    return <p className="text-sm text-muted-foreground p-8">Loading course…</p>;
+    return <DetailPageSkeleton />;
   }
 
   if (!course) {

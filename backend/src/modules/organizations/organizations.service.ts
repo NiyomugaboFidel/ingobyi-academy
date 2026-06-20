@@ -27,6 +27,12 @@ import { ReviewJoinRequestDto } from './dto/review-join-request.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { UpdatePermissionsDto } from './dto/update-permissions.dto';
+import { UpdateCertificateSettingsDto } from './dto/update-certificate-settings.dto';
+import {
+  DEFAULT_CERTIFICATE_SIGNATORIES,
+  CERTIFICATE_ISSUER_NAME,
+  resolveCertificateSettings,
+} from '../../common/utils/certificate-settings';
 import { RbacService } from '../rbac/rbac.service';
 
 @Injectable()
@@ -202,6 +208,63 @@ export class OrganizationsService {
 
   async update(id: string, dto: UpdateOrganizationDto) {
     return this.prisma.organization.update({ where: { id }, data: dto });
+  }
+
+  async getCertificateSettings(orgId: string) {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, settings: true },
+    });
+    if (!org) throw new NotFoundException('Organization not found');
+    return {
+      orgId: org.id,
+      orgName: org.name,
+      settings: resolveCertificateSettings(org.settings, org.name),
+      defaults: DEFAULT_CERTIFICATE_SIGNATORIES,
+      issuerName: CERTIFICATE_ISSUER_NAME,
+    };
+  }
+
+  async updateCertificateSettings(orgId: string, dto: UpdateCertificateSettingsDto) {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { settings: true },
+    });
+    if (!org) throw new NotFoundException('Organization not found');
+
+    const current =
+      org.settings && typeof org.settings === 'object'
+        ? (org.settings as Record<string, unknown>)
+        : {};
+    const existingCert =
+      current.certificate && typeof current.certificate === 'object'
+        ? (current.certificate as Record<string, unknown>)
+        : {};
+
+    const nextCertificate = { ...existingCert };
+    for (const [key, value] of Object.entries(dto)) {
+      if (typeof value === 'string') {
+        nextCertificate[key] = value.trim();
+      }
+    }
+
+    const updated = await this.prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        settings: {
+          ...current,
+          certificate: nextCertificate,
+        } as Prisma.InputJsonValue,
+      },
+      select: { id: true, name: true, settings: true },
+    });
+
+    return {
+      orgId: updated.id,
+      orgName: updated.name,
+      settings: resolveCertificateSettings(updated.settings, updated.name),
+      issuerName: CERTIFICATE_ISSUER_NAME,
+    };
   }
 
   async softDelete(id: string) {

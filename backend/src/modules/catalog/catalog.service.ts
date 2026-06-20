@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CourseStatus, Prisma } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CourseStatus, EnrollmentStatus, Prisma } from '@prisma/client';
 import {
   buildPaginatedMeta,
   PaginationDto,
@@ -12,6 +12,7 @@ import {
   resolveLanguages,
   resolveLevels,
 } from './catalog-search.helpers';
+import { CreateCourseReviewDto } from './dto/create-review.dto';
 
 type CatalogSearchFilters = {
   q?: string;
@@ -301,17 +302,93 @@ export class CatalogService {
         },
         reviews: {
           where: { isVisible: true },
-          take: 10,
+          take: 20,
+          orderBy: { createdAt: 'desc' },
           include: {
             user: {
-              select: { firstName: true, lastName: true, avatarUrl: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+                platformRole: true,
+                isVerified: true,
+              },
             },
           },
         },
       },
     });
     if (!course) throw new NotFoundException('Course not found');
-    return course;
+
+    const stats = await this.loadCourseStats([course.id]);
+    const extra = stats.get(course.id);
+    const ratingDistribution = await this.getRatingDistribution(course.id);
+
+    return {
+      ...course,
+      avgRating: extra?.avgRating ?? null,
+      reviewCount: extra?.reviewCount ?? course.reviews.length,
+      totalDurationMinutes: extra?.totalDurationMinutes ?? 0,
+      lessonCount: extra?.lessonCount ?? 0,
+      ratingDistribution,
+    };
+  }
+
+  async submitReview(userId: string, courseId: string, dto: CreateCourseReviewDto) {
+    const course = await this.prisma.course.findFirst({
+      where: { id: courseId, status: CourseStatus.PUBLISHED },
+      select: { id: true, title: true },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!enrollment || enrollment.status !== EnrollmentStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Complete the course before leaving a review',
+      );
+    }
+
+    return this.prisma.courseReview.upsert({
+      where: { userId_courseId: { userId, courseId } },
+      create: {
+        userId,
+        courseId,
+        rating: dto.rating,
+        comment: dto.comment,
+      },
+      update: {
+        rating: dto.rating,
+        comment: dto.comment,
+        isVisible: true,
+      },
+      include: {
+        user: {
+          select: { firstName: true, lastName: true, avatarUrl: true },
+        },
+      },
+    });
+  }
+
+  async getMyReview(userId: string, courseId: string) {
+    return this.prisma.courseReview.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+  }
+
+  async getRatingDistribution(courseId: string) {
+    const rows = await this.prisma.courseReview.groupBy({
+      by: ['rating'],
+      where: { courseId, isVisible: true },
+      _count: { id: true },
+    });
+    const byStar = new Map(rows.map((r) => [r.rating, r._count.id]));
+    return [5, 4, 3, 2, 1].map((star) => ({
+      star,
+      count: byStar.get(star) ?? 0,
+    }));
   }
 
   listCategories() {
@@ -335,5 +412,174 @@ export class CatalogService {
         price: true,
       },
     });
+  }
+
+  async suggestions(q?: string) {
+    const query = q?.trim() ?? '';
+    const courseSelect = {
+      id: true,
+      title: true,
+      slug: true,
+      thumbnailUrl: true,
+      shortDescription: true,
+      level: true,
+      price: true,
+      tags: true,
+      category: { select: { name: true, slug: true } },
+      org: { select: { name: true, slug: true } },
+      _count: { select: { enrollments: true } },
+    } as const;
+
+    if (!query) {
+      const [featuredCourses, popularCourses, categories] = await Promise.all([
+        this.prisma.course.findMany({
+          where: { status: CourseStatus.PUBLISHED, isFeatured: true },
+          take: 4,
+          orderBy: { publishedAt: 'desc' },
+          select: courseSelect,
+        }),
+        this.prisma.course.findMany({
+          where: { status: CourseStatus.PUBLISHED },
+          take: 4,
+          orderBy: { enrollments: { _count: 'desc' } },
+          select: courseSelect,
+        }),
+        this.prisma.courseCategory.findMany({
+          where: { parentId: null },
+          take: 6,
+          orderBy: { name: 'asc' },
+          select: {
+            name: true,
+            slug: true,
+            _count: { select: { courses: true } },
+          },
+        }),
+      ]);
+
+      const courses = (featuredCourses.length ? featuredCourses : popularCourses).slice(0, 6);
+      const topics = [
+        ...new Set(
+          courses.flatMap((course) => course.tags ?? []).filter(Boolean),
+        ),
+      ].slice(0, 8);
+
+      return {
+        query: '',
+        courses: courses.map((course) => this.mapSuggestionCourse(course)),
+        categories: categories.map((category) => ({
+          name: category.name,
+          slug: category.slug,
+          courseCount: category._count.courses,
+        })),
+        topics,
+        popularTerms: [
+          ...categories.slice(0, 4).map((category) => category.name),
+          ...courses.slice(0, 3).map((course) => course.title),
+        ].slice(0, 8),
+      };
+    }
+
+    const searchWhere: Prisma.CourseWhereInput = {
+      status: CourseStatus.PUBLISHED,
+      OR: [
+        { title: { contains: query, mode: 'insensitive' } },
+        { shortDescription: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { tags: { has: query } },
+        { category: { name: { contains: query, mode: 'insensitive' } } },
+        { org: { name: { contains: query, mode: 'insensitive' } } },
+      ],
+    };
+
+    const [courses, categories, tagCourses] = await Promise.all([
+      this.prisma.course.findMany({
+        where: searchWhere,
+        take: 6,
+        orderBy: [{ enrollments: { _count: 'desc' } }, { title: 'asc' }],
+        select: courseSelect,
+      }),
+      this.prisma.courseCategory.findMany({
+        where: {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { slug: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        take: 4,
+        orderBy: { name: 'asc' },
+        select: {
+          name: true,
+          slug: true,
+          _count: { select: { courses: true } },
+        },
+      }),
+      this.prisma.course.findMany({
+        where: {
+          status: CourseStatus.PUBLISHED,
+          tags: { hasSome: [query] },
+        },
+        take: 12,
+        select: { tags: true },
+      }),
+    ]);
+
+    const topics = [
+      ...new Set(
+        [
+          ...courses.flatMap((course) => course.tags ?? []),
+          ...tagCourses.flatMap((course) => course.tags ?? []),
+          ...categories.map((category) => category.name),
+        ].filter(Boolean),
+      ),
+    ]
+      .filter((topic) => topic.toLowerCase().includes(query.toLowerCase()) || query.length < 3)
+      .slice(0, 8);
+
+    const popularTerms = [
+      query,
+      ...categories.map((category) => category.name),
+      ...courses.slice(0, 3).map((course) => course.title),
+      ...topics,
+    ]
+      .filter((term, index, arr) => term && arr.indexOf(term) === index)
+      .slice(0, 8);
+
+    return {
+      query,
+      courses: courses.map((course) => this.mapSuggestionCourse(course)),
+      categories: categories.map((category) => ({
+        name: category.name,
+        slug: category.slug,
+        courseCount: category._count.courses,
+      })),
+      topics,
+      popularTerms,
+    };
+  }
+
+  private mapSuggestionCourse(course: {
+    id: string;
+    title: string;
+    slug: string;
+    thumbnailUrl: string | null;
+    shortDescription: string | null;
+    level: string;
+    price: Prisma.Decimal | null;
+    category: { name: string; slug: string } | null;
+    org: { name: string; slug: string } | null;
+    _count: { enrollments: number };
+  }) {
+    return {
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      thumbnailUrl: course.thumbnailUrl,
+      shortDescription: course.shortDescription,
+      level: course.level,
+      price: course.price != null ? course.price.toString() : null,
+      category: course.category,
+      org: course.org,
+      enrollmentCount: course._count.enrollments,
+    };
   }
 }

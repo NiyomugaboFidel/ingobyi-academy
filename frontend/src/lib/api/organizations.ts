@@ -146,6 +146,40 @@ export function updateOrganization(
   });
 }
 
+export type CertificateSignatorySettings = {
+  ceoName: string;
+  ceoTitle: string;
+  programLeaderName: string;
+  programLeaderTitle: string;
+  issuerOrgName: string;
+};
+
+export function getCertificateSettings(orgId: string, token: string) {
+  return apiRequest<{
+    orgId: string;
+    orgName: string;
+    issuerName: string;
+    settings: CertificateSignatorySettings;
+    defaults: CertificateSignatorySettings;
+  }>(`/organizations/${orgId}/certificate-settings`, { token });
+}
+
+export function updateCertificateSettings(
+  orgId: string,
+  token: string,
+  body: Partial<CertificateSignatorySettings>,
+) {
+  return apiRequest<{
+    orgId: string;
+    orgName: string;
+    settings: CertificateSignatorySettings;
+  }>(`/organizations/${orgId}/certificate-settings`, {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
 // ── Members ──────────────────────────────────────────────────────────
 
 export function listOrgMembers(orgId: string, token: string, page = 1, limit = 50) {

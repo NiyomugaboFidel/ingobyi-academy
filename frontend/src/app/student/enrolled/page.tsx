@@ -5,15 +5,17 @@ import { useQuery } from '@tanstack/react-query';
 import { GraduationCap } from 'lucide-react';
 import { LearningShell } from '@/components/layout/learning-shell';
 import { myEnrollments } from '@/lib/api/enrollments';
+import { learningKeys } from '@/lib/query/learning';
 import { useAuthStore } from '@/lib/auth/store';
 
 export default function StudentEnrolledPage() {
   const token = useAuthStore((s) => s.accessToken);
 
   const { data: enrollments = [], isLoading } = useQuery({
-    queryKey: ['enrollments', 'my'],
+    queryKey: learningKeys.myEnrollments(),
     queryFn: () => myEnrollments(token!),
     enabled: !!token,
+    refetchOnWindowFocus: true,
   });
 
   return (
@@ -69,13 +71,13 @@ export default function StudentEnrolledPage() {
                   </Link>
                   <div className="mt-auto flex items-center justify-between pt-3">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                         e.status === 'COMPLETED'
-                          ? 'bg-brand-mint/30 text-brand-green'
-                          : 'bg-brand-green/8 text-brand-green'
+                          ? 'bg-green-100 text-green-800 ring-1 ring-green-200'
+                          : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
                       }`}
                     >
-                      {e.status.toLowerCase()}
+                      {e.status === 'COMPLETED' ? '✓ Completed' : '● Enrolled'}
                     </span>
                     <Link
                       href={`/student/learn?courseId=${e.course.id}`}

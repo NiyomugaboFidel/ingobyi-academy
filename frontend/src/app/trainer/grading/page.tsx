@@ -82,7 +82,11 @@ export default function TrainerGradingPage() {
         feedback: { ...feedback, [submissionId]: '' },
       });
       toast.success('Graded');
-      queryClient.invalidateQueries({ queryKey: ['submissions', selectedLessonId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['submissions', selectedLessonId] }),
+        queryClient.invalidateQueries({ queryKey: ['submission'] }),
+        queryClient.invalidateQueries({ queryKey: ['progress'] }),
+      ]);
     } catch (err) {
       toast.error(getErrorMessage(err, 'Grading failed'));
     }

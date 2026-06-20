@@ -8,6 +8,7 @@ export interface LessonProgress {
 
 export interface CourseProgress {
   courseId: string;
+  enrollmentStatus: string;
   completionPercent: number;
   lessonsCompleted: number;
   totalLessons: number;
@@ -18,6 +19,7 @@ export interface CourseProgress {
 
 type BackendCourseProgress = {
   enrollment?: {
+    status?: string;
     progress?: Array<{ lessonId: string; isCompleted: boolean; watchedSec?: number }>;
   };
   stats?: {
@@ -35,6 +37,7 @@ export async function getCourseProgress(courseId: string, token: string): Promis
   const totalWatchedSec = progress.reduce((sum, p) => sum + (p.watchedSec ?? 0), 0);
   return {
     courseId,
+    enrollmentStatus: data.enrollment?.status ?? 'ACTIVE',
     completionPercent: data.stats?.percent ?? 0,
     lessonsCompleted: data.stats?.completed ?? 0,
     totalLessons: data.stats?.totalLessons ?? 0,

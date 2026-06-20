@@ -49,6 +49,15 @@ export class AssignmentsController {
     return this.assignmentsService.submit(assignmentId, user.userId, dto);
   }
 
+  @Get('submissions/:assignmentId/mine')
+  @ApiOperation({ summary: 'My submission for assignment' })
+  mySubmission(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('assignmentId', ParseCuidPipe) assignmentId: string,
+  ) {
+    return this.assignmentsService.getMySubmission(assignmentId, user.userId);
+  }
+
   @Get('submissions/:assignmentId')
   @Roles(UserRole.TRAINER, UserRole.ADMIN)
   @ApiOperation({ summary: 'List submissions' })

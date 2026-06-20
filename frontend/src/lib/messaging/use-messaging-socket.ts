@@ -15,7 +15,10 @@ type MessagingSocketHandlers = {
 
 export function useMessagingSocket(token: string | null, handlers: MessagingSocketHandlers) {
   const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
+
+  useEffect(() => {
+    handlersRef.current = handlers;
+  }, [handlers]);
 
   useEffect(() => {
     if (!token) return;
