@@ -5,8 +5,8 @@
   "description": "Ingobyi Academy — NestJS + Prisma + PostgreSQL API",
   "license": "UNLICENSED",
   "scripts": {
-    "postinstall": "prisma generate",
-    "build": "nest build",
+    "postinstall": "echo 'Skipping prisma generate in CI'",
+    "build": "prisma generate && nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
