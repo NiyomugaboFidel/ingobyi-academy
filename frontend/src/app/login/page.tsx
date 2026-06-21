@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -25,7 +25,8 @@ import {
   verifyOtp,
 } from '@/lib/api/auth';
 import { applyAuthSession } from '@/lib/api/session';
-import { getPostAuthRedirect, useAuthStore } from '@/lib/auth/store';
+import { useAuthStore } from '@/lib/auth/store';
+import { redirectPathLabel, resolvePostAuthRedirect, sanitizeRedirectPath } from '@/lib/auth/redirect';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/api/errors';
 
@@ -38,7 +39,29 @@ const inputClass =
   'h-12 rounded-md border-2 border-brand-green/18 bg-white px-5 text-[15px] font-medium text-brand-ink shadow-sm transition-all placeholder:text-brand-ink/38 focus-visible:border-brand-green focus-visible:ring-2 focus-visible:ring-brand-green/15';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="min-h-screen bg-white font-poppins antialiased">
+      <ExploreNav showCatalogQuickNav={false} />
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-sm text-brand-ink/55">Loading…</p>
+      </div>
+    </div>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect = sanitizeRedirectPath(redirectParam);
   const [mode, setMode] = useState<Mode>('signin');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -54,6 +77,16 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [verifyEmail, setVerifyEmail] = useState('');
   const [otpPurpose, setOtpPurpose] = useState<'VERIFY_EMAIL' | 'RESET_PASSWORD'>('VERIFY_EMAIL');
+
+  useEffect(() => {
+    if (searchParams.get('mode') === 'signup') {
+      setMode('signup');
+    }
+  }, [searchParams]);
+
+  function goAfterAuth(user: Parameters<typeof resolvePostAuthRedirect>[0]) {
+    router.push(resolvePostAuthRedirect(user, redirectParam));
+  }
 
   function setAuthMode(m: 'signin' | 'signup') {
     setMode(m);
@@ -83,7 +116,7 @@ export default function LoginPage() {
       const data = await login(email, password);
       applyAuthSession(data);
       toast.success('Welcome back!');
-      router.push(getPostAuthRedirect(data.user));
+      goAfterAuth(data.user);
     } catch (err) {
       const msg = getErrorMessage(err, 'Invalid credentials');
       if (msg.includes('Email not verified')) {
@@ -135,7 +168,7 @@ export default function LoginPage() {
       if (otpPurpose === 'VERIFY_EMAIL' && 'accessToken' in data) {
         applyAuthSession(data);
         toast.success('Account verified!');
-        router.push(getPostAuthRedirect(data.user));
+        goAfterAuth(data.user);
       } else {
         setMode('reset');
         toast.success('Code verified — set your new password');
@@ -293,6 +326,11 @@ export default function LoginPage() {
                 <p className="mx-auto mt-5 max-w-md text-center text-sm leading-relaxed text-brand-ink/55">
                   {subheading}
                 </p>
+                {safeRedirect && (mode === 'signin' || mode === 'signup') ? (
+                  <p className="mx-auto mt-3 max-w-md rounded-lg bg-brand-mint-wash/60 px-4 py-2 text-center text-xs text-brand-green">
+                    After signing in, you&apos;ll return to {redirectPathLabel(safeRedirect)}.
+                  </p>
+                ) : null}
               </>
             ) : (
               <div className="text-center">

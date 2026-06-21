@@ -259,6 +259,14 @@ export default function OnboardingPage() {
             <p className="mt-3 text-xs text-amber-700/80">
               Or an admin can add you directly from their members panel.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="outline" className="border-amber-300 text-amber-900">
+                <Link href="/search">Browse public courses</Link>
+              </Button>
+              <Button asChild size="sm" variant="ghost" className="text-amber-900 hover:bg-amber-100">
+                <Link href="/contact">Need help?</Link>
+              </Button>
+            </div>
           </section>
         )}
 

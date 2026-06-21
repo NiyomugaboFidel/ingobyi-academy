@@ -4,7 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditAction, MembershipStatus, NotificationType, UserRole } from '@prisma/client';
+import {
+  AuditAction,
+  MembershipStatus,
+  NotificationType,
+  UserRole,
+} from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import {
@@ -219,13 +224,16 @@ export class OrganizationsService {
     return {
       orgId: org.id,
       orgName: org.name,
-      settings: resolveCertificateSettings(org.settings, org.name),
+      settings: resolveCertificateSettings(org.settings),
       defaults: DEFAULT_CERTIFICATE_SIGNATORIES,
       issuerName: CERTIFICATE_ISSUER_NAME,
     };
   }
 
-  async updateCertificateSettings(orgId: string, dto: UpdateCertificateSettingsDto) {
+  async updateCertificateSettings(
+    orgId: string,
+    dto: UpdateCertificateSettingsDto,
+  ) {
     const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: { settings: true },
@@ -262,7 +270,7 @@ export class OrganizationsService {
     return {
       orgId: updated.id,
       orgName: updated.name,
-      settings: resolveCertificateSettings(updated.settings, updated.name),
+      settings: resolveCertificateSettings(updated.settings),
       issuerName: CERTIFICATE_ISSUER_NAME,
     };
   }

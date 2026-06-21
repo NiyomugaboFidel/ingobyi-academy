@@ -17,7 +17,9 @@ export class NotificationsService implements OnModuleInit {
     private readonly moduleRef: ModuleRef,
   ) {}
 
-  onModuleInit() {
+  onModuleInit(): void {
+    // Dynamic require avoids circular dependency with AppGateway at module load time.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { AppGateway: Gateway } = require('../gateway/app.gateway') as {
       AppGateway: new (...args: never[]) => AppGateway;
     };

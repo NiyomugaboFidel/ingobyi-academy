@@ -33,18 +33,58 @@ const PARTNER_API_INDEX = {
     { method: 'GET', path: '/api/partner', scope: 'any active key' },
     { method: 'GET', path: '/api/partner/organization', scope: 'COURSE_READ' },
     { method: 'GET', path: '/api/partner/courses', scope: 'COURSE_READ' },
-    { method: 'GET', path: '/api/partner/courses/by-slug/:slug', scope: 'COURSE_READ' },
+    {
+      method: 'GET',
+      path: '/api/partner/courses/by-slug/:slug',
+      scope: 'COURSE_READ',
+    },
     { method: 'GET', path: '/api/partner/courses/:id', scope: 'COURSE_READ' },
     { method: 'GET', path: '/api/partner/categories', scope: 'COURSE_READ' },
-    { method: 'GET', path: '/api/partner/enrollments', scope: 'ENROLLMENT_READ' },
-    { method: 'GET', path: '/api/partner/enrollments/check', scope: 'ENROLLMENT_READ' },
-    { method: 'POST', path: '/api/partner/enrollments', scope: 'ENROLLMENT_WRITE' },
-    { method: 'GET', path: '/api/partner/learners/:id/learning', scope: 'LEARNER_READ' },
-    { method: 'GET', path: '/api/partner/learners/:id/enrollments', scope: 'LEARNER_READ' },
-    { method: 'GET', path: '/api/partner/learners/:id/progress/:courseId', scope: 'LEARNER_READ' },
-    { method: 'GET', path: '/api/partner/learners/:id/certificates', scope: 'LEARNER_READ' },
-    { method: 'GET', path: '/api/partner/learners/:id/achievements', scope: 'LEARNER_READ' },
-    { method: 'GET', path: '/api/partner/certificates/verify/:code', scope: 'CERTIFICATE_VERIFY' },
+    {
+      method: 'GET',
+      path: '/api/partner/enrollments',
+      scope: 'ENROLLMENT_READ',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/enrollments/check',
+      scope: 'ENROLLMENT_READ',
+    },
+    {
+      method: 'POST',
+      path: '/api/partner/enrollments',
+      scope: 'ENROLLMENT_WRITE',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/learners/:id/learning',
+      scope: 'LEARNER_READ',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/learners/:id/enrollments',
+      scope: 'LEARNER_READ',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/learners/:id/progress/:courseId',
+      scope: 'LEARNER_READ',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/learners/:id/certificates',
+      scope: 'LEARNER_READ',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/learners/:id/achievements',
+      scope: 'LEARNER_READ',
+    },
+    {
+      method: 'GET',
+      path: '/api/partner/certificates/verify/:code',
+      scope: 'CERTIFICATE_VERIFY',
+    },
   ],
 } as const;
 
@@ -280,11 +320,7 @@ export class PartnerApiService {
     };
   }
 
-  enrollLearner(
-    apiKey: ApiKeyContext,
-    userId: string,
-    courseId: string,
-  ) {
+  enrollLearner(apiKey: ApiKeyContext, userId: string, courseId: string) {
     return this.enrollments.enroll(
       userId,
       courseId,
@@ -304,25 +340,29 @@ export class PartnerApiService {
   async getLearnerLearningRecord(apiKey: ApiKeyContext, userId: string) {
     await this.assertLearnerInScope(apiKey, userId);
 
-    const [enrollments, certificates, allAchievements, user] = await Promise.all([
-      this.getLearnerEnrollments(apiKey, userId),
-      this.getLearnerCertificates(apiKey, userId),
-      this.achievements.getUnifiedForUser(userId),
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          avatarUrl: true,
-          country: true,
-          createdAt: true,
-        },
-      }),
-    ]);
+    const [enrollments, certificates, allAchievements, user] =
+      await Promise.all([
+        this.getLearnerEnrollments(apiKey, userId),
+        this.getLearnerCertificates(apiKey, userId),
+        this.achievements.getUnifiedForUser(userId),
+        this.prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatarUrl: true,
+            country: true,
+            createdAt: true,
+          },
+        }),
+      ]);
 
-    const achievementList = await this.filterAchievementsForOrg(apiKey, allAchievements);
+    const achievementList = await this.filterAchievementsForOrg(
+      apiKey,
+      allAchievements,
+    );
 
     return {
       learner: user,
@@ -331,7 +371,9 @@ export class PartnerApiService {
       achievements: achievementList,
       summary: {
         coursesEnrolled: enrollments.length,
-        coursesCompleted: enrollments.filter((e) => e.status === EnrollmentStatus.COMPLETED).length,
+        coursesCompleted: enrollments.filter(
+          (e) => e.status === EnrollmentStatus.COMPLETED,
+        ).length,
         certificatesEarned: certificates.length,
         achievementPoints: achievementList.reduce((s, a) => s + a.points, 0),
       },
@@ -357,7 +399,9 @@ export class PartnerApiService {
             org: { select: { id: true, name: true } },
           },
         },
-        progress: { select: { lessonId: true, isCompleted: true, completedAt: true } },
+        progress: {
+          select: { lessonId: true, isCompleted: true, completedAt: true },
+        },
       },
       orderBy: { enrolledAt: 'desc' },
     });
@@ -476,7 +520,11 @@ export class PartnerApiService {
         _count: { _all: true },
       }),
       this.prisma.$queryRaw<
-        Array<{ courseId: string; totalDuration: number | null; lessonCount: number }>
+        Array<{
+          courseId: string;
+          totalDuration: number | null;
+          lessonCount: number;
+        }>
       >`
         SELECT c.id AS "courseId",
                COALESCE(SUM(l.duration), 0)::int AS "totalDuration",
@@ -561,12 +609,10 @@ export class PartnerApiService {
     }
   }
 
-  private async buildProgressSummary(
-    enrollment: {
-      courseId: string;
-      progress: Array<{ lessonId: string; isCompleted: boolean }>;
-    },
-  ) {
+  private async buildProgressSummary(enrollment: {
+    courseId: string;
+    progress: Array<{ lessonId: string; isCompleted: boolean }>;
+  }) {
     const lessons = await this.prisma.lesson.findMany({
       where: {
         module: { courseId: enrollment.courseId, isPublished: true },
@@ -575,7 +621,9 @@ export class PartnerApiService {
       select: { id: true },
     });
     const totalLessons = lessons.length;
-    const completedLessons = enrollment.progress.filter((p) => p.isCompleted).length;
+    const completedLessons = enrollment.progress.filter(
+      (p) => p.isCompleted,
+    ).length;
     const percent =
       totalLessons > 0
         ? Math.round((completedLessons / totalLessons) * 100)

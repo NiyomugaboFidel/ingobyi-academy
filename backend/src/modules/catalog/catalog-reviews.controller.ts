@@ -12,7 +12,9 @@ export class CatalogReviewsController {
   constructor(private readonly catalogService: CatalogService) {}
 
   @Post('courses/:courseId')
-  @ApiOperation({ summary: 'Submit or update a course review after completion' })
+  @ApiOperation({
+    summary: 'Submit or update a course review after completion',
+  })
   submitReview(
     @CurrentUser() user: AuthenticatedUser,
     @Param('courseId', ParseCuidPipe) courseId: string,

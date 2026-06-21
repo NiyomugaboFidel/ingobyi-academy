@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CourseStatus, EnrollmentStatus, Prisma } from '@prisma/client';
 import {
   buildPaginatedMeta,
@@ -335,7 +339,11 @@ export class CatalogService {
     };
   }
 
-  async submitReview(userId: string, courseId: string, dto: CreateCourseReviewDto) {
+  async submitReview(
+    userId: string,
+    courseId: string,
+    dto: CreateCourseReviewDto,
+  ) {
     const course = await this.prisma.course.findFirst({
       where: { id: courseId, status: CourseStatus.PUBLISHED },
       select: { id: true, title: true },
@@ -456,7 +464,9 @@ export class CatalogService {
         }),
       ]);
 
-      const courses = (featuredCourses.length ? featuredCourses : popularCourses).slice(0, 6);
+      const courses = (
+        featuredCourses.length ? featuredCourses : popularCourses
+      ).slice(0, 6);
       const topics = [
         ...new Set(
           courses.flatMap((course) => course.tags ?? []).filter(Boolean),
@@ -532,7 +542,10 @@ export class CatalogService {
         ].filter(Boolean),
       ),
     ]
-      .filter((topic) => topic.toLowerCase().includes(query.toLowerCase()) || query.length < 3)
+      .filter(
+        (topic) =>
+          topic.toLowerCase().includes(query.toLowerCase()) || query.length < 3,
+      )
       .slice(0, 8);
 
     const popularTerms = [

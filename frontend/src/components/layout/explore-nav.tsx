@@ -616,7 +616,7 @@ function CatalogQuickNavStrip() {
         <div
           className={cn(
             'flex min-h-[40px] min-w-0 items-center gap-2 overflow-x-auto px-1 sm:border-r sm:border-brand-ink/10 sm:px-3',
-            '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            'scroll-touch scrollbar-thin',
           )}
         >
           <span className="hidden shrink-0 text-[10px] font-bold uppercase tracking-wider text-brand-ink/55 sm:inline">
@@ -632,7 +632,7 @@ function CatalogQuickNavStrip() {
         <div
           className={cn(
             'flex min-h-[40px] min-w-0 items-center gap-2 overflow-x-auto border-t border-black/8 px-1 pt-1 sm:border-t-0 sm:pt-0 sm:pl-3',
-            '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            'scroll-touch scrollbar-thin',
           )}
         >
           <span className="hidden shrink-0 text-[10px] font-bold uppercase tracking-wider text-brand-ink/55 sm:inline">
@@ -761,8 +761,8 @@ function ExploreNavInner({ showCatalogQuickNav = true }: ExploreNavProps) {
           Skip to content
         </a>
         <nav className="mx-auto max-w-[1600px] px-3 sm:px-4 lg:px-6" aria-label="Main navigation">
-          {/* Mobile: 3-row layout */}
-          <div className="flex flex-col md:hidden">
+          {/* Mobile & tablet: stacked layout until large screens */}
+          <div className="flex flex-col lg:hidden">
             <div className="flex items-center justify-between gap-2 border-b border-brand-ink/10 py-2">
               <Link href="/" className="flex shrink-0 items-center" onClick={() => setOpen(false)}>
                 <BrandLogo size="md" className="rounded-md" />
@@ -864,8 +864,8 @@ function ExploreNavInner({ showCatalogQuickNav = true }: ExploreNavProps) {
             ) : null}
           </div>
 
-          {/* Desktop */}
-          <div className="hidden min-h-[5rem] items-center gap-1 py-1 md:flex lg:gap-2">
+          {/* Desktop (lg+) */}
+          <div className="hidden min-h-[4.5rem] items-center gap-1 py-1 lg:flex xl:gap-2">
             <Link href="/" className="mr-1 flex shrink-0 items-center lg:mr-2" onClick={() => setOpen(false)}>
               <BrandLogo size="md" className="rounded-md" />
             </Link>
@@ -898,7 +898,7 @@ function ExploreNavInner({ showCatalogQuickNav = true }: ExploreNavProps) {
                 />
               </li>
             </ul>
-            <div className="ml-1 flex shrink-0 flex-wrap items-center justify-end gap-0.5 pl-1 lg:pl-2">
+            <div className="ml-1 flex shrink-0 flex-nowrap items-center justify-end gap-0.5 pl-1 xl:pl-2">
               {rightCluster}
             </div>
           </div>

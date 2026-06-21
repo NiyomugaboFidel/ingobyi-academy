@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { Suspense, use, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Globe2, Heart, MessageCircle, Trophy } from 'lucide-react';
@@ -25,8 +25,7 @@ import { cn } from '@/lib/utils';
 
 type Tab = 'posts' | 'achievements' | 'followers' | 'following';
 
-export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function UserProfileContent({ id }: { id: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = useAuthStore((s) => s.accessToken);
@@ -245,5 +244,23 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
         </div>
       )}
     </LearningShell>
+  );
+}
+
+function UserProfileFallback() {
+  return (
+    <LearningShell allowedRoles={['STUDENT', 'TRAINER', 'PARENT', 'ADMIN', 'SUPERADMIN']}>
+      <div className="h-64 animate-pulse rounded-2xl bg-muted" />
+    </LearningShell>
+  );
+}
+
+export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+
+  return (
+    <Suspense fallback={<UserProfileFallback />}>
+      <UserProfileContent id={id} />
+    </Suspense>
   );
 }

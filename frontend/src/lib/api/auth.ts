@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { refreshSession } from './token-refresh';
 import type { AuthTokens, User } from './types';
 
 export async function login(email: string, password: string) {
@@ -63,7 +64,7 @@ export async function resetPassword(data: {
 }
 
 export async function refreshToken() {
-  return apiRequest<AuthTokens>('/auth/refresh', { method: 'POST' });
+  return refreshSession();
 }
 
 export async function logout(token: string) {

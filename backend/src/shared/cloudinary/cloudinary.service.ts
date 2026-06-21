@@ -24,7 +24,9 @@ export class CloudinaryService implements OnModuleInit {
 
   onModuleInit(): void {
     if (this.configured) {
-      const cloudName = this.config.get('CLOUDINARY_CLOUD_NAME', { infer: true });
+      const cloudName = this.config.get('CLOUDINARY_CLOUD_NAME', {
+        infer: true,
+      });
       this.logger.log(`Cloudinary ready (cloud: ${cloudName})`);
       return;
     }

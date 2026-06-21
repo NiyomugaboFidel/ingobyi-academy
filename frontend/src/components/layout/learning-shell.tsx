@@ -19,7 +19,7 @@ const NAV = [
   { href: '/student/dashboard', label: 'Home', Icon: Home },
   { href: '/student/enrolled', label: 'My learning', Icon: BookOpen },
   { href: '/community', label: 'Community', Icon: Users },
-  { href: '/catalog', label: 'Explore', Icon: Compass },
+  { href: '/search', label: 'Explore', Icon: Compass },
   { href: '/student/messages', label: 'Messages', Icon: Mail },
 ];
 
@@ -65,13 +65,13 @@ export function LearningShell({
 
           <Link
             href="/search"
-            className="hidden min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-brand-green/30 hover:bg-background md:flex"
+            className="hidden min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-brand-green/30 hover:bg-background sm:flex"
           >
             <Search className="h-4 w-4 shrink-0" />
-            <span>Search courses, trainers, learners…</span>
+            <span className="truncate">Search courses, trainers, learners…</span>
           </Link>
 
-          <nav className="ml-auto hidden items-center gap-1 lg:flex">
+          <nav className="ml-auto hidden min-w-0 items-center gap-1 lg:flex">
             {NAV.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + '/');
               return (
@@ -94,7 +94,7 @@ export function LearningShell({
 
           <div className="flex items-center gap-1">
             <OnlineBadge compact className="hidden sm:inline-flex" />
-            <Link href="/search" className="rounded-full p-2 text-muted-foreground hover:bg-muted md:hidden" aria-label="Search">
+            <Link href="/search" className="rounded-full p-2 text-muted-foreground hover:bg-muted sm:hidden" aria-label="Search">
               <Search className="h-5 w-5" />
             </Link>
             <Link href="/notifications" className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Notifications">
@@ -113,29 +113,29 @@ export function LearningShell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:pb-8">{children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
-        <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 py-1">
-          {NAV.slice(0, 4).map((item) => {
-            const active = pathname === item.href;
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
+        <div className="mx-auto flex max-w-2xl items-stretch justify-between gap-0.5 px-1 py-1 sm:px-2">
+          {NAV.map((item) => {
+            const active =
+              pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium',
+                  'flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-2 text-[9px] font-medium sm:text-[10px]',
                   active ? 'text-brand-green' : 'text-muted-foreground',
                 )}
               >
-                <item.Icon className="h-5 w-5" />
-                {item.label}
+                <item.Icon className="h-5 w-5 shrink-0" />
+                <span className="max-w-full truncate text-center leading-tight">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
-      <div className="h-16 md:hidden" />
     </div>
   );
 }

@@ -15,7 +15,10 @@ export function normalizeEnv(
   }
 
   const cloudinaryUrl = env.CLOUDINARY_URL;
-  if (typeof cloudinaryUrl === 'string' && cloudinaryUrl.startsWith('cloudinary://')) {
+  if (
+    typeof cloudinaryUrl === 'string' &&
+    cloudinaryUrl.startsWith('cloudinary://')
+  ) {
     const match = /^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/.exec(cloudinaryUrl);
     if (match) {
       if (!env.CLOUDINARY_API_KEY) env.CLOUDINARY_API_KEY = match[1];
@@ -35,9 +38,9 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(16),
-  JWT_EXPIRES_IN: z.string().default('15m'),
+  JWT_EXPIRES_IN: z.string().default('1h'),
   REFRESH_SECRET: z.string().min(16),
-  REFRESH_EXPIRES_IN: z.string().default('7d'),
+  REFRESH_EXPIRES_IN: z.string().default('180d'),
   COOKIE_DOMAIN: z.string().optional(),
   COOKIE_SECURE: z
     .string()

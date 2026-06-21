@@ -137,12 +137,19 @@ function FilterCheckbox({ label, checked, onChange, count }: {
   );
 }
 
+function isRecentlyUpdated(course: Course): boolean {
+  if (!course.updatedAt) return false;
+  const updated = new Date(course.updatedAt).getTime();
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  return updated >= thirtyDaysAgo;
+}
+
 /* ────────────────────── course row (Udemy-style) ────────────────────── */
 function CourseRow({ course }: { course: Course }) {
   const price = course.price ? `RWF ${Number(course.price).toLocaleString()}` : 'Free';
-  const originalPrice = course.price ? `RWF ${(Number(course.price) * 2).toLocaleString()}` : null;
   const lessonCount = course.lessonCount ?? course.modules?.reduce((a, m) => a + m.lessons.length, 0) ?? 0;
   const durationLabel = formatDuration(course.totalDurationMinutes ?? lessonCount * 15);
+  const showNew = isRecentlyUpdated(course);
 
   return (
     <Link href={`/catalog/${course.slug}`} className="group flex gap-0 border-b border-gray-200 py-4 hover:bg-gray-50/50 transition-colors">
@@ -188,9 +195,11 @@ function CourseRow({ course }: { course: Course }) {
         {/* Badges */}
         <div className="mt-2 flex flex-wrap gap-1.5">
           {course.type === 'OPEN' && (
-            <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Bestseller</span>
+            <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Popular</span>
           )}
-          <span className="rounded-sm bg-green-100 px-1.5 py-0.5 text-[10px] font-bold text-green-800">New</span>
+          {showNew && (
+            <span className="rounded-sm bg-green-100 px-1.5 py-0.5 text-[10px] font-bold text-green-800">New</span>
+          )}
           {course.category && (
             <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
               {course.category.name}
@@ -202,9 +211,6 @@ function CourseRow({ course }: { course: Course }) {
       {/* Price */}
       <div className="shrink-0 w-24 text-right pl-2">
         <p className="text-base font-bold text-gray-900">{price}</p>
-        {originalPrice && (
-          <p className="text-xs text-gray-400 line-through">{originalPrice}</p>
-        )}
       </div>
     </Link>
   );

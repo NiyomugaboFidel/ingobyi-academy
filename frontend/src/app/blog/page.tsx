@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { ExploreNav } from '@/components/layout/explore-nav';
-import { LandingFooter } from '@/components/landing/landing-footer';
+import { LandingPageShell } from '@/components/landing/landing-page-shell';
+import { LandingHero } from '@/components/landing/landing-hero';
+import { LandingSectionHeader } from '@/components/landing/landing-section-header';
 import { Calendar, Clock } from 'lucide-react';
 
 const BLOG_POSTS = [
@@ -58,70 +59,101 @@ const BLOG_POSTS = [
 
 export default function BlogPage() {
   const [featured, ...rest] = BLOG_POSTS;
+
   return (
-    <div className="min-h-screen bg-white font-poppins">
-      <ExploreNav showCatalogQuickNav={false} />
+    <LandingPageShell>
+      <LandingHero
+        variant="light"
+        eyebrow="News & stories"
+        title="Field notes from Ingobyi"
+        description="Bootcamps, school partnerships, and programme updates from Core Group Rwanda — with photos from our learners and mentors."
+      />
 
-      <main id="main">
-        {/* Hero */}
-        <section className="border-b border-brand-green/10 bg-gradient-to-b from-brand-page-bg to-white py-14 md:py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-brand-ink md:text-4xl">News &amp; stories</h1>
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-brand-ink/70">
-              Field notes from Ingobyi Innovation Hub bootcamps, school partnerships, and Core Group Rwanda — with photos and video from our programmes.
-            </p>
-          </div>
-        </section>
-
-        <section className="py-12 md:py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {/* Featured */}
-            {featured && (
-              <Link href={`/blog/${featured.slug}`} className="group mb-12 block">
-                <div className="grid gap-8 overflow-hidden rounded-2xl border border-brand-green/10 bg-white shadow-sm lg:grid-cols-2">
-                  <div className="aspect-[16/9] overflow-hidden bg-gray-100 lg:aspect-auto">
-                    <img src={featured.coverImage} alt={featured.coverImageAlt} className="h-full w-full object-cover transition group-hover:scale-105" />
+      <section className="py-12 md:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {featured && (
+            <Link href={`/blog/${featured.slug}`} className="group mb-12 block">
+              <div className="grid gap-0 overflow-hidden rounded-2xl border border-brand-green/10 bg-white shadow-sm lg:grid-cols-2">
+                <div className="aspect-[16/10] overflow-hidden lg:aspect-auto lg:min-h-[320px]">
+                  <img
+                    src={featured.coverImage}
+                    alt={featured.coverImageAlt}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <div className="flex flex-col justify-center p-8">
+                  <span className="inline-flex w-fit rounded-full bg-brand-green/8 px-3 py-1 text-xs font-bold text-brand-green">
+                    {featured.category}
+                  </span>
+                  <h2 className="mt-3 text-2xl font-extrabold text-brand-ink group-hover:text-brand-green md:text-3xl">
+                    {featured.title}
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-brand-ink/70">{featured.excerpt}</p>
+                  <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {featured.date}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {featured.readTime}
+                    </span>
                   </div>
-                  <div className="flex flex-col justify-center p-8">
-                    <span className="inline-flex w-fit rounded-full bg-brand-green/8 px-3 py-1 text-xs font-bold text-brand-green">{featured.category}</span>
-                    <h2 className="mt-3 text-2xl font-extrabold text-brand-ink group-hover:text-brand-green md:text-3xl">{featured.title}</h2>
-                    <p className="mt-3 text-sm leading-relaxed text-brand-ink/70">{featured.excerpt}</p>
-                    <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{featured.date}</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{featured.readTime}</span>
-                    </div>
-                    <span className="mt-5 inline-flex w-fit font-bold text-brand-green underline-offset-2 group-hover:underline">
-                      Read more →
+                  <span className="mt-5 inline-flex w-fit font-bold text-brand-green underline-offset-2 group-hover:underline">
+                    Read more →
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          <LandingSectionHeader
+            align="left"
+            title="More stories"
+            className="mb-8"
+          />
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {rest.map((post) => (
+              <Link
+                key={post.slug}
+                href={`/blog/${post.slug}`}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-brand-green/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="aspect-[16/10] overflow-hidden bg-brand-mint-wash">
+                  <img
+                    src={post.coverImage}
+                    alt={post.coverImageAlt}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <span className="inline-flex w-fit rounded-full bg-brand-green/8 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">
+                    {post.category}
+                  </span>
+                  <h2 className="mt-2 line-clamp-2 text-base font-bold text-brand-ink group-hover:text-brand-green">
+                    {post.title}
+                  </h2>
+                  <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-brand-ink/65">
+                    {post.excerpt}
+                  </p>
+                  <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {post.date}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {post.readTime}
                     </span>
                   </div>
                 </div>
               </Link>
-            )}
-
-            {/* Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {rest.map((post) => (
-                <Link key={post.slug} href={`/blog/${post.slug}`} className="group flex flex-col overflow-hidden rounded-xl border border-brand-green/10 bg-white shadow-sm transition hover:shadow-md">
-                  <div className="aspect-[16/10] overflow-hidden bg-gray-100">
-                    <img src={post.coverImage} alt={post.coverImageAlt} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
-                  </div>
-                  <div className="flex flex-1 flex-col p-5">
-                    <span className="inline-flex w-fit rounded-full bg-brand-green/8 px-2.5 py-0.5 text-[10px] font-bold text-brand-green">{post.category}</span>
-                    <h2 className="mt-2 line-clamp-2 text-base font-bold text-brand-ink group-hover:text-brand-green">{post.title}</h2>
-                    <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-brand-ink/65">{post.excerpt}</p>
-                    <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{post.date}</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{post.readTime}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            ))}
           </div>
-        </section>
-      </main>
-
-      <LandingFooter />
-    </div>
+        </div>
+      </section>
+    </LandingPageShell>
   );
 }

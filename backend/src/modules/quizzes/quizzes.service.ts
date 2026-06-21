@@ -53,7 +53,11 @@ export class QuizzesService {
         userId_courseId: { userId, courseId: lesson.module.courseId },
       },
     });
-    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+    if (
+      !enrollment ||
+      (enrollment.status !== EnrollmentStatus.ACTIVE &&
+        enrollment.status !== EnrollmentStatus.COMPLETED)
+    ) {
       throw new BadRequestException('Not enrolled');
     }
 
@@ -96,7 +100,11 @@ export class QuizzesService {
         userId_courseId: { userId, courseId: lesson.module.courseId },
       },
     });
-    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+    if (
+      !enrollment ||
+      (enrollment.status !== EnrollmentStatus.ACTIVE &&
+        enrollment.status !== EnrollmentStatus.COMPLETED)
+    ) {
       throw new BadRequestException('Not enrolled');
     }
 
@@ -136,10 +144,12 @@ export class QuizzesService {
         },
         update: { isCompleted: true, completedAt: new Date() },
       });
-      await this.progress.checkAndCompleteEnrollment(
-        userId,
-        lesson.module.courseId,
-      );
+      if (enrollment.status === EnrollmentStatus.ACTIVE) {
+        await this.progress.checkAndCompleteEnrollment(
+          userId,
+          lesson.module.courseId,
+        );
+      }
     }
 
     return {

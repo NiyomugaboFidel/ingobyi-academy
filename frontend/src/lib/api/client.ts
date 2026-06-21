@@ -1,29 +1,26 @@
+import { ApiError } from './api-error';
+import { API_BASE, apiUrl } from './api-url';
+import { refreshSession } from './token-refresh';
+import { resolveApiErrorMessage } from './errors';
+import { useAuthStore } from '@/lib/auth/store';
 import type { ApiResponse } from './types';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ||
-  'http://localhost:3001/api';
+export { ApiError } from './api-error';
+export { API_BASE, apiUrl } from './api-url';
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
-export function apiUrl(path: string): string {
-  const p = path.startsWith('/') ? path : `/${path}`;
-  return `${API_BASE}${p}`;
-}
+type ApiRequestOptions = RequestInit & {
+  token?: string | null;
+  /** Internal: prevent infinite retry loops on 401. */
+  _authRetried?: boolean;
+  /** Skip silent refresh (e.g. login failures). */
+  skipAuthRetry?: boolean;
+};
 
 export async function apiRequest<T>(
   path: string,
-  options: RequestInit & { token?: string | null } = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
-  const { token, ...init } = options;
+  const { token, _authRetried, skipAuthRetry, ...init } = options;
   const headers = new Headers(init.headers);
   if (!headers.has('Content-Type') && init.body) {
     headers.set('Content-Type', 'application/json');
@@ -51,16 +48,31 @@ export async function apiRequest<T>(
     statusCode?: number;
   };
 
+  const status = json.statusCode || res.status;
+
+  if (
+    status === 401 &&
+    !skipAuthRetry &&
+    !_authRetried &&
+    !path.includes('/auth/login') &&
+    !path.includes('/auth/register') &&
+    !path.includes('/auth/refresh')
+  ) {
+    try {
+      const refreshed = await refreshSession();
+      return apiRequest<T>(path, {
+        ...options,
+        token: refreshed.accessToken,
+        _authRetried: true,
+      });
+    } catch {
+      useAuthStore.getState().clearAuth();
+    }
+  }
+
   if (!res.ok || json.success === false) {
-    const status = json.statusCode || res.status;
-    const apiError = new ApiError(
-      json.message || `Request failed (${status})`,
-      status,
-    );
-    throw apiError;
+    throw new ApiError(resolveApiErrorMessage(json.message, status), status);
   }
 
   return json.data;
 }
-
-export { API_BASE };

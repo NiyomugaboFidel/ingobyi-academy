@@ -1,0 +1,12 @@
+# Do not deploy this repository from the root on Railway.
+
+Create **two services** from the same repo:
+
+| Service | Root Directory |
+|---------|----------------|
+| API | `backend` |
+| Frontend | `frontend` |
+
+Also add a **PostgreSQL** plugin.
+
+See [RAILWAY.md](../RAILWAY.md) for the full guide.

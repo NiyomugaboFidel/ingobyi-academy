@@ -6,6 +6,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class ProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private canAccessLearning(status: EnrollmentStatus) {
+    return (
+      status === EnrollmentStatus.ACTIVE ||
+      status === EnrollmentStatus.COMPLETED
+    );
+  }
+
   private async getEnrollment(userId: string, lessonId: string) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
@@ -17,7 +24,7 @@ export class ProgressService {
         userId_courseId: { userId, courseId: lesson.module.courseId },
       },
     });
-    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+    if (!enrollment || !this.canAccessLearning(enrollment.status)) {
       throw new BadRequestException('Not enrolled');
     }
     return { enrollment, lesson };
@@ -73,7 +80,7 @@ export class ProgressService {
         userId_courseId: { userId, courseId: lesson.module.courseId },
       },
     });
-    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+    if (!enrollment || !this.canAccessLearning(enrollment.status)) {
       return null;
     }
 
@@ -90,7 +97,9 @@ export class ProgressService {
       update: { isCompleted: true, completedAt: new Date() },
     });
 
-    return this.checkAndCompleteEnrollment(userId, lesson.module.courseId);
+    return enrollment.status === EnrollmentStatus.ACTIVE
+      ? this.checkAndCompleteEnrollment(userId, lesson.module.courseId)
+      : enrollment;
   }
 
   async heartbeat(userId: string, lessonId: string, watchedSec: number) {
@@ -128,7 +137,7 @@ export class ProgressService {
       where: { id: lessonId },
       include: { module: true },
     });
-    if (lesson) {
+    if (lesson && enrollment.status === EnrollmentStatus.ACTIVE) {
       await this.checkAndCompleteEnrollment(userId, lesson.module.courseId);
     }
 
@@ -171,9 +180,12 @@ export class ProgressService {
       stats: {
         totalLessons,
         completed,
-        percent: totalLessons
-          ? Math.round((completed / totalLessons) * 100)
-          : 0,
+        percent:
+          enrollment.status === EnrollmentStatus.COMPLETED
+            ? 100
+            : totalLessons
+              ? Math.round((completed / totalLessons) * 100)
+              : 0,
         learningMinutes: Math.round(totalWatchedSec / 60),
         learningHours: Math.round((totalWatchedSec / 3600) * 10) / 10,
       },

@@ -201,7 +201,10 @@ export class CoursesService {
     return course;
   }
 
-  private assertCanManageCourse(user: AuthenticatedUser, course: { orgId: string | null; trainers: { userId: string }[] }) {
+  private assertCanManageCourse(
+    user: AuthenticatedUser,
+    course: { orgId: string | null; trainers: { userId: string }[] },
+  ) {
     if (user.role === UserRole.SUPERADMIN) return;
     const effectiveRole = guardRole(user);
     const isTrainer = course.trainers.some((t) => t.userId === user.userId);

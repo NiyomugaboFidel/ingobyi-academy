@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ExploreNav } from '@/components/layout/explore-nav';
-import { LandingFooter } from '@/components/landing/landing-footer';
+import { LandingPageShell } from '@/components/landing/landing-page-shell';
+import { LandingCtaBand } from '@/components/landing/landing-cta-band';
+import { Button } from '@/components/ui/button';
 import { Calendar, Clock, ChevronLeft } from 'lucide-react';
 
 const BLOG_POSTS: Record<string, {
@@ -60,75 +61,82 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound();
 
   return (
-    <div className="min-h-screen bg-white font-poppins">
-      <ExploreNav showCatalogQuickNav={false} />
-
-      <main id="main" className="mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-        {/* Back */}
-        <Link href="/blog" className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-brand-green hover:underline">
-          <ChevronLeft className="h-4 w-4" />
-          Back to news
-        </Link>
-
-        {/* Hero image */}
-        <div className="aspect-[16/8] w-full overflow-hidden rounded-2xl bg-gray-100 shadow-sm">
-          <img src={post.coverImage} alt={post.coverImageAlt} className="h-full w-full object-cover" loading="eager" />
-        </div>
-
-        {/* Meta */}
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-brand-green/8 px-3 py-1 text-xs font-bold text-brand-green">{post.category}</span>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Calendar className="h-3.5 w-3.5" />{post.date}</span>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" />{post.readTime}</span>
-        </div>
-
-        <h1 className="mt-4 text-2xl font-extrabold leading-tight text-brand-ink sm:text-3xl md:text-4xl">{post.title}</h1>
-
-        {/* Body */}
-        <div className="mt-8 space-y-5">
-          {post.body.map((paragraph, i) => (
-            <p key={i} className="text-base leading-relaxed text-brand-ink/80">{paragraph}</p>
-          ))}
-        </div>
-
-        {/* YouTube embed */}
-        {post.youtubeId && (
-          <div className="mt-8 aspect-video w-full overflow-hidden rounded-xl border border-brand-green/10 shadow-sm">
-            <iframe
-              src={`https://www.youtube.com/embed/${post.youtubeId}?rel=0`}
-              className="h-full w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title={post.title}
-            />
-          </div>
-        )}
-
-        {/* Gallery */}
-        {post.gallery && post.gallery.length > 0 && (
-          <div className="mt-8">
-            <h2 className="mb-4 text-lg font-extrabold text-brand-ink">Gallery</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {post.gallery.map((src, i) => (
-                <div key={i} className="aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-sm">
-                  <img src={src} alt="" className="h-full w-full object-cover transition hover:scale-105" loading="lazy" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Footer CTA */}
-        <div className="mt-12 rounded-2xl border border-brand-green/10 bg-brand-mint-wash p-8 text-center">
-          <h3 className="text-lg font-extrabold text-brand-ink">Want to partner with Ingobyi?</h3>
-          <p className="mt-2 text-sm text-muted-foreground">Bring our programs to your school or community.</p>
-          <Link href="/contact" className="mt-4 inline-flex items-center rounded-full bg-brand-green px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-green-dark">
-            Contact us
+    <LandingPageShell>
+      <article className="py-8 md:py-12">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <Link
+            href="/blog"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-green transition hover:underline"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to news
           </Link>
-        </div>
-      </main>
 
-      <LandingFooter />
-    </div>
+          <div className="aspect-[16/8] w-full overflow-hidden rounded-2xl border border-brand-green/10 bg-brand-mint-wash shadow-md">
+            <img src={post.coverImage} alt={post.coverImageAlt} className="h-full w-full object-cover" loading="eager" />
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-brand-green/8 px-3 py-1 text-xs font-bold text-brand-green">{post.category}</span>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5" />
+              {post.date}
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              {post.readTime}
+            </span>
+          </div>
+
+          <h1 className="mt-4 text-2xl font-extrabold leading-tight text-brand-ink sm:text-3xl md:text-4xl">{post.title}</h1>
+
+          <div className="mt-8 space-y-5">
+            {post.body.map((paragraph, i) => (
+              <p key={i} className="text-base leading-relaxed text-brand-ink/80">{paragraph}</p>
+            ))}
+          </div>
+
+          {post.youtubeId && (
+            <div className="mt-10 aspect-video w-full overflow-hidden rounded-2xl border border-brand-green/10 shadow-sm">
+              <iframe
+                src={`https://www.youtube.com/embed/${post.youtubeId}?rel=0`}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={post.title}
+              />
+            </div>
+          )}
+
+          {post.gallery && post.gallery.length > 0 && (
+            <div className="mt-10">
+              <h2 className="mb-4 text-lg font-extrabold text-brand-ink">Gallery</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {post.gallery.map((src, i) => (
+                  <div key={i} className="aspect-square overflow-hidden rounded-xl border border-brand-green/8 bg-brand-mint-wash shadow-sm">
+                    <img src={src} alt="" className="h-full w-full object-cover transition duration-300 hover:scale-105" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </article>
+
+      <LandingCtaBand
+        title="Want to partner with Ingobyi?"
+        description="Bring our programs to your school or community — we handle kits, coaching, and curriculum."
+        actions={
+          <>
+            <Button asChild className="rounded-full bg-brand-mint font-bold text-brand-green-darker hover:bg-brand-mint-hover">
+              <Link href="/contact">Contact us</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full border-white/30 bg-transparent font-bold text-white hover:bg-white/10">
+              <Link href="/programs">View programs</Link>
+            </Button>
+          </>
+        }
+      />
+    </LandingPageShell>
   );
 }

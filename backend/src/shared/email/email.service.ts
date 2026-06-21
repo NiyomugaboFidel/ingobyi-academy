@@ -37,7 +37,9 @@ export class EmailService implements OnModuleInit {
       await this.transporter.verify();
       const from =
         this.config.get('SMTP_FROM', { infer: true }) ?? 'noreply@ingobyi.com';
-      this.logger.log(`SMTP ready (${this.config.get('SMTP_HOST', { infer: true })}, from: ${from})`);
+      this.logger.log(
+        `SMTP ready (${this.config.get('SMTP_HOST', { infer: true })}, from: ${from})`,
+      );
     } catch (err) {
       this.logger.error(
         `SMTP verification failed: ${(err as Error).message}. Check SMTP_HOST, SMTP_USER, SMTP_PASS, and SMTP_FROM in .env`,

@@ -101,7 +101,9 @@ export class AchievementsService {
         kind: 'course',
         title: enrollment.course.title,
         description: `Completed the course ${enrollment.course.title}`,
-        earnedAt: (enrollment.completedAt ?? enrollment.enrolledAt).toISOString(),
+        earnedAt: (
+          enrollment.completedAt ?? enrollment.enrolledAt
+        ).toISOString(),
         points: 25,
         courseTitle: enrollment.course.title,
         courseSlug: enrollment.course.slug,

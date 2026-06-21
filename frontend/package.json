@@ -7,7 +7,7 @@
     "dev:turbo": "next dev --port 3000 --hostname 127.0.0.1",
     "dev:full": "concurrently -k -n next,api -c cyan,magenta \"npm run dev\" \"npm run start:dev --prefix ../backend\"",
     "build": "next build",
-    "start": "next start -p ${PORT:-3000}",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "start:standalone": "node .next/standalone/server.js",
     "lint": "eslint"
   },

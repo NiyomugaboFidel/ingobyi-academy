@@ -40,7 +40,9 @@ export class AchievementsController {
   }
 
   @Get('mine')
-  @ApiOperation({ summary: 'My earned achievements (certificates, courses, badges)' })
+  @ApiOperation({
+    summary: 'My earned achievements (certificates, courses, badges)',
+  })
   mine(@CurrentUser() user: AuthenticatedUser) {
     return this.achievementsService.getUnifiedForUser(user.userId);
   }

@@ -10,4 +10,4 @@ if [ "$RUN_SEED" = "true" ]; then
 fi
 
 echo "==> Starting API server..."
-exec node dist/main
+exec node dist/src/main

@@ -24,10 +24,57 @@ export class EnrollmentsService {
     if (!course || course.status !== CourseStatus.PUBLISHED) {
       throw new BadRequestException('Course not available for enrollment');
     }
-    const enrollment = await this.prisma.enrollment.upsert({
+
+    const existing = await this.prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
-      create: { userId, courseId, source, apiKeyId },
-      update: { status: EnrollmentStatus.ACTIVE, source, apiKeyId },
+      include: { course: { select: { id: true, title: true, slug: true } } },
+    });
+
+    if (existing) {
+      if (
+        existing.status === EnrollmentStatus.ACTIVE ||
+        existing.status === EnrollmentStatus.COMPLETED
+      ) {
+        return existing;
+      }
+
+      if (
+        existing.status === EnrollmentStatus.DROPPED ||
+        existing.status === EnrollmentStatus.EXPIRED
+      ) {
+        const reactivated = await this.prisma.enrollment.update({
+          where: { id: existing.id },
+          data: { status: EnrollmentStatus.ACTIVE, source, apiKeyId },
+          include: {
+            course: { select: { id: true, title: true, slug: true } },
+          },
+        });
+        await this.audit.log({
+          userId,
+          orgId: course.orgId ?? undefined,
+          action: AuditAction.ENROLL,
+          entity: 'Enrollment',
+          entityId: reactivated.id,
+        });
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        });
+        if (user) {
+          void this.email.sendEnrollment(
+            user.email,
+            reactivated.course.title,
+            courseId,
+          );
+        }
+        return reactivated;
+      }
+
+      return existing;
+    }
+
+    const enrollment = await this.prisma.enrollment.create({
+      data: { userId, courseId, source, apiKeyId },
       include: { course: { select: { id: true, title: true, slug: true } } },
     });
     await this.audit.log({

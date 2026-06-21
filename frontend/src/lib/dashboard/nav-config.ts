@@ -161,7 +161,7 @@ const GROUPS: Record<UserRole, NavGroup[]> = {
         { id: 'tr-grading', label: 'Grading', href: '/trainer/grading', Icon: ClipboardCheck },
         { id: 'tr-attendance', label: 'Attendance', href: '/trainer/attendance', Icon: Users },
         { id: 'tr-students', label: 'Students', href: '/trainer/students', Icon: GraduationCap },
-        { id: 'tr-certificates', label: 'Certificates', href: '/profile', Icon: Award },
+        { id: 'tr-certificates', label: 'Certificates', href: '/student/certificates', Icon: Award },
       ],
     },
     {

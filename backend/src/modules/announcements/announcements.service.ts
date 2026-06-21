@@ -23,7 +23,8 @@ export class AnnouncementsService implements OnModuleInit {
     private readonly notifications: NotificationsService,
   ) {}
 
-  onModuleInit() {
+  onModuleInit(): void {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { AppGateway: Gateway } = require('../gateway/app.gateway') as {
       AppGateway: new (...args: never[]) => AppGateway;
     };
@@ -271,8 +272,10 @@ export class AnnouncementsService implements OnModuleInit {
   }
 
   update(id: string, dto: Partial<CreateAnnouncementDto>) {
-    const { targets, ...rest } = dto;
-    return this.prisma.announcement.update({ where: { id }, data: rest });
+    // targets are managed separately; strip from scalar update payload
+    const { targets, ...data } = dto;
+    void targets;
+    return this.prisma.announcement.update({ where: { id }, data });
   }
 
   remove(id: string) {

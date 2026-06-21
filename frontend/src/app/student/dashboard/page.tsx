@@ -7,12 +7,15 @@ import {
 } from 'lucide-react';
 import { LearningShell } from '@/components/layout/learning-shell';
 import { ProgressRing } from '@/components/dashboard/progress-ring';
+import { EmptyState } from '@/components/dashboard/empty-state';
+import { ApiErrorBanner } from '@/components/errors/api-error-banner';
 import { Button } from '@/components/ui/button';
 import { getFeatured, getCategories } from '@/lib/api/catalog';
 import { myEnrollments } from '@/lib/api/enrollments';
 import { getMyAchievements } from '@/lib/api/achievements';
-import { getCourseProgress } from '@/lib/api/progress';
 import { getCommunityFeed } from '@/lib/api/community';
+import { getErrorMessage } from '@/lib/api/errors';
+import { useEnrollmentProgressMap } from '@/hooks/use-enrollment-progress-map';
 import { learningKeys } from '@/lib/query/learning';
 import { useAuthStore } from '@/lib/auth/store';
 
@@ -20,7 +23,12 @@ export default function StudentDashboardPage() {
   const token = useAuthStore((s) => s.accessToken)!;
   const user = useAuthStore((s) => s.user);
 
-  const { data: enrollments = [] } = useQuery({
+  const {
+    data: enrollments = [],
+    error: enrollError,
+    refetch: refetchEnrollments,
+    isLoading: loadingEnrollments,
+  } = useQuery({
     queryKey: learningKeys.myEnrollments(),
     queryFn: () => myEnrollments(token),
     enabled: !!token,
@@ -34,25 +42,7 @@ export default function StudentDashboardPage() {
     refetchOnWindowFocus: true,
   });
 
-  const { data: progressMap = {} } = useQuery({
-    queryKey: ['progress', 'all', enrollments.map((e) => e.course.id).join(',')],
-    queryFn: async () => {
-      const map: Record<string, number> = {};
-      await Promise.all(
-        enrollments.map(async (e) => {
-          try {
-            const p = await getCourseProgress(e.course.id, token);
-            map[e.course.id] = p.completionPercent;
-          } catch {
-            map[e.course.id] = e.status === 'COMPLETED' ? 100 : 0;
-          }
-        }),
-      );
-      return map;
-    },
-    enabled: !!token && enrollments.length > 0,
-    refetchOnWindowFocus: true,
-  });
+  const { data: progressMap = {} } = useEnrollmentProgressMap(enrollments, token);
 
   const { data: featured = [] } = useQuery({
     queryKey: ['catalog', 'featured'],
@@ -71,6 +61,7 @@ export default function StudentDashboardPage() {
   });
 
   const active = enrollments.filter((e) => e.status === 'ACTIVE');
+  const hasEnrollments = enrollments.length > 0;
   const continueCourses = active
     .map((e) => ({ ...e, progress: progressMap[e.course.id] ?? 0 }))
     .sort((a, b) => b.progress - a.progress)
@@ -78,6 +69,15 @@ export default function StudentDashboardPage() {
 
   return (
     <LearningShell allowedRoles={['STUDENT', 'SUPERADMIN']}>
+      {enrollError ? (
+        <ApiErrorBanner
+          message={getErrorMessage(enrollError)}
+          onRetry={() => refetchEnrollments()}
+          retrying={loadingEnrollments}
+          className="mb-6"
+        />
+      ) : null}
+
       <section className="relative overflow-hidden rounded-2xl border border-brand-green/15 bg-gradient-to-br from-brand-green to-brand-green-dark px-6 py-8 text-white shadow-lg sm:px-8 sm:py-10">
         <div className="relative z-10 max-w-2xl">
           <p className="text-sm font-medium text-white/75">Your learning space</p>
@@ -85,14 +85,22 @@ export default function StudentDashboardPage() {
             Welcome back, {user?.firstName}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-white/80">
-            Pick up where you left off, explore new skills, and connect with learners across Ingobyi Academy.
+            {hasEnrollments
+              ? 'Pick up where you left off, explore new skills, and connect with learners across Ingobyi Academy.'
+              : 'Browse courses, enroll in your first one, and start building skills today.'}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button asChild size="sm" className="rounded-full bg-white text-brand-green hover:bg-white/90">
-              <Link href="/student/enrolled"><Play className="mr-1.5 h-4 w-4" /> Continue learning</Link>
-            </Button>
+            {hasEnrollments ? (
+              <Button asChild size="sm" className="rounded-full bg-white text-brand-green hover:bg-white/90">
+                <Link href="/student/enrolled"><Play className="mr-1.5 h-4 w-4" /> Continue learning</Link>
+              </Button>
+            ) : (
+              <Button asChild size="sm" className="rounded-full bg-white text-brand-green hover:bg-white/90">
+                <Link href="/search"><Compass className="mr-1.5 h-4 w-4" /> Find your first course</Link>
+              </Button>
+            )}
             <Button asChild size="sm" variant="outline" className="rounded-full border-white/30 bg-transparent text-white hover:bg-white/10">
-              <Link href="/catalog"><Compass className="mr-1.5 h-4 w-4" /> Browse catalog</Link>
+              <Link href="/search"><Compass className="mr-1.5 h-4 w-4" /> Explore courses</Link>
             </Button>
           </div>
         </div>
@@ -101,6 +109,17 @@ export default function StudentDashboardPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
+          {!loadingEnrollments && !hasEnrollments && !enrollError ? (
+            <EmptyState
+              icon={BookOpen}
+              title="You're not enrolled yet"
+              description="Explore our catalog and enroll in a course to start tracking progress, earning certificates, and joining the community."
+              primaryAction={{ label: 'Browse courses', href: '/search' }}
+              secondaryAction={{ label: 'Popular categories', href: '/search?category=technology' }}
+              className="border border-border bg-card shadow-sm"
+            />
+          ) : null}
+
           {continueCourses.length > 0 && (
             <section>
               <div className="mb-4 flex items-center justify-between">
@@ -140,7 +159,7 @@ export default function StudentDashboardPage() {
             <section>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-foreground">Recommended for you</h2>
-                <Link href="/catalog" className="text-sm font-semibold text-brand-green hover:underline">Explore</Link>
+                <Link href="/search" className="text-sm font-semibold text-brand-green hover:underline">Explore</Link>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {featured.slice(0, 4).map((course) => (
@@ -192,6 +211,11 @@ export default function StudentDashboardPage() {
               <div><dt className="text-muted-foreground">Enrolled</dt><dd className="text-lg font-bold">{enrollments.length}</dd></div>
               <div><dt className="text-muted-foreground">Active</dt><dd className="text-lg font-bold">{active.length}</dd></div>
             </dl>
+            {!hasEnrollments && (
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Enroll in a course to start tracking your progress here.
+              </p>
+            )}
           </div>
 
           {achievements.length > 0 && (

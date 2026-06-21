@@ -21,7 +21,10 @@ type RawPublicUser = {
   bio: string | null;
   platformRole: import('@prisma/client').UserRole;
   isVerified: boolean;
-  memberships: Array<{ role: import('@prisma/client').UserRole; status: import('@prisma/client').MembershipStatus }>;
+  memberships: Array<{
+    role: import('@prisma/client').UserRole;
+    status: import('@prisma/client').MembershipStatus;
+  }>;
   trainedCourses: Array<{ id: string }>;
 };
 
@@ -97,7 +100,7 @@ export class CommunityService {
   }
 
   async toggleLike(postId: string) {
-    const post = await this.prisma.communityPost.findUniqueOrThrow({
+    await this.prisma.communityPost.findUniqueOrThrow({
       where: { id: postId },
     });
     return this.prisma.communityPost.update({
@@ -279,17 +282,25 @@ export class CommunityService {
       isVerified: meta.isVerified,
       stats: {
         ...stats,
-        achievementPoints: unifiedAchievements.reduce((sum, item) => sum + item.points, 0),
+        achievementPoints: unifiedAchievements.reduce(
+          (sum, item) => sum + item.points,
+          0,
+        ),
       },
       posts: user.posts,
       achievements: unifiedAchievements,
       followers: user.followers.map((row) => ({ followerId: row.followerId })),
-      following: user.following.map((row) => ({ followingId: row.followingId })),
+      following: user.following.map((row) => ({
+        followingId: row.followingId,
+      })),
       followerUsers: user.followers.map((row) =>
         this.mapPublicUser(row.follower, statsMap.get(row.followerId) ?? null),
       ),
       followingUsers: user.following.map((row) =>
-        this.mapPublicUser(row.following, statsMap.get(row.followingId) ?? null),
+        this.mapPublicUser(
+          row.following,
+          statsMap.get(row.followingId) ?? null,
+        ),
       ),
       followerCount: user._count.followers,
       followingCount: user._count.following,
@@ -310,7 +321,9 @@ export class CommunityService {
       }),
       this.prisma.userFollow.count({ where }),
     ]);
-    const statsMap = await this.loadStatsForUsers(rows.map((r) => r.followerId));
+    const statsMap = await this.loadStatsForUsers(
+      rows.map((r) => r.followerId),
+    );
     return {
       data: rows.map((row) =>
         this.mapPublicUser(row.follower, statsMap.get(row.followerId) ?? null),
@@ -332,10 +345,15 @@ export class CommunityService {
       }),
       this.prisma.userFollow.count({ where }),
     ]);
-    const statsMap = await this.loadStatsForUsers(rows.map((r) => r.followingId));
+    const statsMap = await this.loadStatsForUsers(
+      rows.map((r) => r.followingId),
+    );
     return {
       data: rows.map((row) =>
-        this.mapPublicUser(row.following, statsMap.get(row.followingId) ?? null),
+        this.mapPublicUser(
+          row.following,
+          statsMap.get(row.followingId) ?? null,
+        ),
       ),
       meta: buildPaginatedMeta(pagination.page, pagination.limit, total),
     };
@@ -386,7 +404,10 @@ export class CommunityService {
       likesCount: post.likesCount,
       isPinned: post.isPinned,
       createdAt: post.createdAt,
-      author: this.mapPublicUser(post.author, statsMap.get(post.author.id) ?? null),
+      author: this.mapPublicUser(
+        post.author,
+        statsMap.get(post.author.id) ?? null,
+      ),
       comments: post.comments.map((c) => ({
         id: c.id,
         content: c.content,
@@ -446,7 +467,9 @@ export class CommunityService {
       trainerCourseIdsByUser.set(link.userId, list);
     }
 
-    const allTrainerCourseIds = [...new Set(trainerLinks.map((l) => l.courseId))];
+    const allTrainerCourseIds = [
+      ...new Set(trainerLinks.map((l) => l.courseId)),
+    ];
     const trainerRatingRows = allTrainerCourseIds.length
       ? await this.prisma.courseReview.groupBy({
           by: ['courseId'],
@@ -489,8 +512,7 @@ export class CommunityService {
           ) *
             25 +
           (achievementRows.find((r) => r.userId === id)?._count.id ?? 0) * 10,
-        reviewsWritten:
-          reviewRows.find((r) => r.userId === id)?._count.id ?? 0,
+        reviewsWritten: reviewRows.find((r) => r.userId === id)?._count.id ?? 0,
         trainerRating:
           ratingCount > 0
             ? Math.round((ratingSum / ratingCount) * 10) / 10
@@ -539,7 +561,10 @@ export class CommunityService {
       this.prisma.user.count({ where }),
     ]);
 
-    const followingSet = await this.loadFollowingSet(viewerId, rows.map((r) => r.id));
+    const followingSet = await this.loadFollowingSet(
+      viewerId,
+      rows.map((r) => r.id),
+    );
     const statsMap = await this.loadStatsForUsers(rows.map((r) => r.id));
 
     return {
@@ -684,7 +709,10 @@ export class CommunityService {
         ...publicUserFieldsSelect,
         _count: { select: { followers: true, posts: true } },
       },
-      orderBy: [{ followers: { _count: 'desc' } }, { posts: { _count: 'desc' } }],
+      orderBy: [
+        { followers: { _count: 'desc' } },
+        { posts: { _count: 'desc' } },
+      ],
       take: limit,
     });
 

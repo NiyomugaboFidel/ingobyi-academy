@@ -31,9 +31,7 @@ export function resolveDisplayRole(input: {
     roles.add(UserRole.TRAINER);
   }
 
-  return [...roles].sort(
-    (a, b) => ROLE_PRIORITY[b] - ROLE_PRIORITY[a],
-  )[0];
+  return [...roles].sort((a, b) => ROLE_PRIORITY[b] - ROLE_PRIORITY[a])[0];
 }
 
 export function buildPublicUserMeta(input: {
@@ -43,7 +41,9 @@ export function buildPublicUserMeta(input: {
   isTrainer?: boolean;
 }): PublicUserMeta {
   const membershipRoles = (input.memberships ?? [])
-    .filter((m) => m.status === undefined || m.status === MembershipStatus.ACTIVE)
+    .filter(
+      (m) => m.status === undefined || m.status === MembershipStatus.ACTIVE,
+    )
     .map((m) => m.role);
 
   return {

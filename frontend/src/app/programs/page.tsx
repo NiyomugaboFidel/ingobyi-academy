@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { ExploreNav } from '@/components/layout/explore-nav';
-import { LandingFooter } from '@/components/landing/landing-footer';
+import { LandingPageShell } from '@/components/landing/landing-page-shell';
+import { LandingHero } from '@/components/landing/landing-hero';
+import { LandingSectionHeader } from '@/components/landing/landing-section-header';
+import { LandingCtaBand } from '@/components/landing/landing-cta-band';
 import { Button } from '@/components/ui/button';
 import { Building2, GraduationCap, Laptop, Trophy, Palette, Users, BookOpen, Cpu } from 'lucide-react';
 
@@ -53,39 +55,31 @@ const ACTIVITIES = [
 
 export default function ProgramsPage() {
   return (
-    <div className="min-h-screen bg-white font-poppins">
-      <ExploreNav showCatalogQuickNav={false} />
+    <LandingPageShell>
+      <LandingHero
+        variant="brand"
+        eyebrow="Core Group · Ingobyi Innovation Hub"
+        title="Programs & activities"
+        description="From online courses to in-school clubs and innovation bootcamps — Ingobyi reaches learners wherever they are in Rwanda."
+        actions={
+          <>
+            <Button asChild size="lg" className="rounded-full bg-brand-mint px-8 font-bold text-brand-green-darker hover:bg-brand-mint-hover">
+              <Link href="/search">Browse courses</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-full border-white/35 bg-white/5 font-bold text-white hover:bg-white/10">
+              <Link href="/partners">Partner with us</Link>
+            </Button>
+          </>
+        }
+      />
 
-      <main id="main">
-        {/* Hero */}
-        <section className="relative overflow-hidden border-b border-brand-green/10 bg-gradient-to-br from-brand-green via-brand-green-darker to-brand-green py-16 text-white md:py-20">
-          <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-brand-mint/15 blur-3xl" />
-          <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-mint">Core Group · Ingobyi Innovation Hub</p>
-            <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">
-              Programs &amp; Activities
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
-              From online courses to in-school clubs and innovation bootcamps — Ingobyi reaches learners wherever they are in Rwanda.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button asChild size="lg" className="rounded-full bg-brand-mint px-8 font-bold text-brand-green-darker hover:bg-brand-mint-hover">
-                <Link href="/catalog">Browse courses</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-full border-white/35 bg-white/5 font-bold text-white hover:bg-white/10">
-                <Link href="/partners">Partner with us</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Who is it for */}
-        <section className="border-b border-brand-green/8 bg-brand-mint-wash py-14">
+      {/* Who is it for */}
+      <section className="border-b border-brand-green/8 bg-brand-mint-wash py-14">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-2xl font-extrabold text-brand-ink md:text-3xl">Who is it for?</h2>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground">Our programs serve three main communities.</p>
-            </div>
+            <LandingSectionHeader
+              title="Who is it for?"
+              description="Our programs serve three main communities."
+            />
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {[
                 { Icon: Building2, title: 'Schools', body: 'Partner with Ingobyi to bring structured after-school programs and in-class STEM activities to your students.' },
@@ -136,10 +130,10 @@ export default function ProgramsPage() {
         {/* Activities */}
         <section className="border-b border-brand-green/8 bg-brand-mint-wash py-14">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-2xl font-extrabold text-brand-ink md:text-3xl">Activities &amp; services</h2>
-              <p className="mt-3 text-base text-muted-foreground">15+ activities across 5 categories delivered in schools and online.</p>
-            </div>
+            <LandingSectionHeader
+              title="Activities & services"
+              description="15+ activities across 5 categories delivered in schools and online."
+            />
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {ACTIVITIES.map((a) => (
                 <div key={a.label} className="rounded-2xl border border-brand-green/8 bg-white p-5 text-center shadow-sm">
@@ -154,26 +148,20 @@ export default function ProgramsPage() {
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="bg-brand-green py-16 text-white">
-          <div className="mx-auto max-w-3xl px-4 text-center">
-            <h2 className="text-2xl font-extrabold sm:text-3xl">Ready to bring Ingobyi to your school?</h2>
-            <p className="mx-auto mt-4 max-w-xl text-base text-white/75">
-              Reach out to discuss school partnerships, curriculum integration, or sponsoring a student cohort.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button asChild className="rounded-full bg-brand-mint font-bold text-brand-green-darker hover:bg-brand-mint-hover">
-                <Link href="/contact">Contact us</Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-full border-white/30 bg-transparent font-bold text-white hover:bg-white/10">
-                <a href="https://coregroup.rw" target="_blank" rel="noopener noreferrer">Visit coregroup.rw</a>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <LandingFooter />
-    </div>
+      <LandingCtaBand
+        title="Ready to bring Ingobyi to your school?"
+        description="Reach out to discuss school partnerships, curriculum integration, or sponsoring a student cohort."
+        actions={
+          <>
+            <Button asChild className="rounded-full bg-brand-mint font-bold text-brand-green-darker hover:bg-brand-mint-hover">
+              <Link href="/contact">Contact us</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full border-white/30 bg-transparent font-bold text-white hover:bg-white/10">
+              <a href="https://coregroup.rw" target="_blank" rel="noopener noreferrer">Visit coregroup.rw</a>
+            </Button>
+          </>
+        }
+      />
+    </LandingPageShell>
   );
 }

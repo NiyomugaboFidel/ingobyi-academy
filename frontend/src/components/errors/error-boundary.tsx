@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { getErrorMessage } from '@/lib/api/errors';
 import { PageError } from './page-error';
 
 type ErrorBoundaryProps = {
@@ -32,7 +33,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <PageError
           title={this.props.fallbackTitle ?? 'Something went wrong'}
-          message={this.state.error.message || 'An unexpected error occurred in this section.'}
+          message={getErrorMessage(
+            this.state.error,
+            'Something went wrong in this section. Please try again.',
+          )}
           onRetry={this.handleRetry}
         />
       );

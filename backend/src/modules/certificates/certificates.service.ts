@@ -11,9 +11,7 @@ import {
   EnrollmentStatus,
   UserRole,
 } from '@prisma/client';
-import {
-  buildPaginatedMeta,
-} from '../../common/dto/pagination.dto';
+import { buildPaginatedMeta } from '../../common/dto/pagination.dto';
 import { CertificateRequestListQueryDto } from './dto/certificate-request.dto';
 import { AuthenticatedUser } from '../../common/interfaces/request-with-user.interface';
 import {
@@ -39,11 +37,7 @@ export class CertificatesService {
     private readonly config: ConfigService<EnvConfig, true>,
   ) {}
 
-  async requestCertificate(
-    userId: string,
-    courseId: string,
-    message?: string,
-  ) {
+  async requestCertificate(userId: string, courseId: string, message?: string) {
     const enrollment = await this.prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });
@@ -64,7 +58,9 @@ export class CertificatesService {
       where: { userId_courseId: { userId, courseId } },
     });
     if (existing?.status === CertificateRequestStatus.PENDING) {
-      throw new BadRequestException('Certificate request already pending review');
+      throw new BadRequestException(
+        'Certificate request already pending review',
+      );
     }
     if (existing?.status === CertificateRequestStatus.APPROVED) {
       throw new BadRequestException('Certificate already approved');
@@ -293,7 +289,9 @@ export class CertificatesService {
     ) {
       return;
     }
-    throw new BadRequestException('Not allowed to review this certificate request');
+    throw new BadRequestException(
+      'Not allowed to review this certificate request',
+    );
   }
 
   async mine(userId: string) {
@@ -395,10 +393,7 @@ export class CertificatesService {
     });
     if (!cert) throw new NotFoundException('Certificate not found');
 
-    const signatories = resolveCertificateSettings(
-      cert.course.org?.settings,
-      cert.course.org?.name,
-    );
+    const signatories = resolveCertificateSettings(cert.course.org?.settings);
     const frontendUrl = this.config.get('FRONTEND_URL', { infer: true });
     const verifyUrl = buildCertificateVerifyUrl(frontendUrl, cert.verifyCode);
 

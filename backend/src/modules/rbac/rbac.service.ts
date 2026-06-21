@@ -11,7 +11,20 @@ export class RbacService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit(): Promise<void> {
-    await this.seedDefaultPermissions();
+    try {
+      await this.seedDefaultPermissions();
+    } catch (err: unknown) {
+      const code =
+        err && typeof err === 'object' && 'code' in err
+          ? String((err as { code: string }).code)
+          : '';
+      if (code === 'P2021') {
+        throw new Error(
+          'Database schema is missing. Run migrations first: npm run prisma:migrate:deploy (or deploy with start:railway on Railway).',
+        );
+      }
+      throw err;
+    }
   }
 
   async seedDefaultPermissions(): Promise<void> {

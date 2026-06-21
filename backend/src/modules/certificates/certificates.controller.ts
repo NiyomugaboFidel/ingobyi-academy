@@ -54,7 +54,9 @@ export class CertificatesController {
 
   @Post('requests/:id/approve')
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
-  @ApiOperation({ summary: 'Approve certificate request and issue certificate' })
+  @ApiOperation({
+    summary: 'Approve certificate request and issue certificate',
+  })
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,

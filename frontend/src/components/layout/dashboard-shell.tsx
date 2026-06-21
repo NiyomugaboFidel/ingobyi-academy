@@ -336,32 +336,54 @@ function TopBar({ onOpenMobile }: { onOpenMobile: () => void }) {
   }
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-brand-green/10 bg-white px-3 md:px-4">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-brand-green/10 bg-white px-3 md:gap-3 md:px-4">
       <button
         type="button"
         onClick={onOpenMobile}
-        className="rounded p-1.5 text-brand-muted hover:bg-brand-green/5 hover:text-brand-green lg:hidden"
+        className="shrink-0 rounded p-1.5 text-brand-muted hover:bg-brand-green/5 hover:text-brand-green lg:hidden"
         aria-label="Open navigation"
       >
         <PanelLeftOpen className="h-4 w-4" />
       </button>
 
-      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1 text-xs text-brand-muted md:flex">
+      <nav
+        aria-label="Breadcrumb"
+        className="hidden min-w-0 flex-1 items-center gap-1 overflow-hidden text-xs text-brand-muted md:flex lg:max-w-[40%] xl:max-w-none"
+      >
         {crumbs.map((crumb, i) => (
-          <span key={`${crumb.label}-${i}`} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3 w-3 text-brand-muted-light" />}
+          <span key={`${crumb.label}-${i}`} className="flex min-w-0 shrink items-center gap-1">
+            {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 text-brand-muted-light" />}
             {crumb.href && i < crumbs.length - 1 ? (
-              <Link href={crumb.href} className="hover:text-brand-green">
+              <Link href={crumb.href} className="truncate hover:text-brand-green">
                 {crumb.label}
               </Link>
             ) : (
-              <span className={i === crumbs.length - 1 ? 'font-medium text-brand-ink' : ''}>{crumb.label}</span>
+              <span
+                className={cn(
+                  'truncate',
+                  i === crumbs.length - 1 ? 'font-medium text-brand-ink' : '',
+                )}
+              >
+                {crumb.label}
+              </span>
             )}
           </span>
         ))}
       </nav>
 
-      <form onSubmit={handleGlobalSearch} className="ml-auto hidden max-w-sm flex-1 items-center md:flex lg:max-w-md">
+      <Link
+        href="/search"
+        className="ml-auto shrink-0 rounded p-1.5 text-brand-muted hover:bg-brand-green/5 hover:text-brand-green md:hidden"
+        title="Search"
+        aria-label="Search"
+      >
+        <Search className="h-4 w-4" />
+      </Link>
+
+      <form
+        onSubmit={handleGlobalSearch}
+        className="ml-auto hidden min-w-0 flex-1 items-center md:flex lg:max-w-xs xl:max-w-md"
+      >
         <div className="flex w-full items-center gap-2 rounded border border-brand-green/10 bg-brand-canvas px-2.5 py-1.5">
           <Search className="h-3.5 w-3.5 shrink-0 text-brand-muted-light" />
           <input
@@ -502,7 +524,7 @@ export function DashboardShell({
             mainClassName,
           )}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-5 md:px-6 md:py-5">
             <ErrorBoundary fallbackTitle="Dashboard error">
               <DashboardPage fill>{children}</DashboardPage>
             </ErrorBoundary>

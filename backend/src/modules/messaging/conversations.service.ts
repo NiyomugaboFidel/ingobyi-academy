@@ -368,7 +368,12 @@ export class ConversationsService {
   }
 
   private dedupeDirectConversations<
-    T extends { id: string; otherUser?: { id: string } | null; updatedAt: Date; lastMessage?: { createdAt: Date } | null },
+    T extends {
+      id: string;
+      otherUser?: { id: string } | null;
+      updatedAt: Date;
+      lastMessage?: { createdAt: Date } | null;
+    },
   >(conversations: T[]): T[] {
     const byOther = new Map<string, T>();
     for (const conv of conversations) {

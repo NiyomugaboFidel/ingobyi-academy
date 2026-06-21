@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   ChevronLeft, ChevronRight, List, Check,
   PlayCircle, BookOpen, ClipboardCheck, Award,
@@ -25,7 +26,9 @@ import { ReportDialog } from '@/components/report-dialog';
 import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
 import { BrandLogo } from '@/components/brand-logo';
+import { PageError } from '@/components/errors/page-error';
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/api/errors';
 
 interface Lesson {
   id: string;
@@ -95,6 +98,7 @@ function StudentLearnInner() {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [cinemaMode, setCinemaMode] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -112,6 +116,7 @@ function StudentLearnInner() {
 
   const enrollmentStatus = progressData?.enrollmentStatus ?? 'ACTIVE';
   const learningMinutes = progressData?.learningMinutes ?? 0;
+  const isCourseCompleted = enrollmentStatus === 'COMPLETED';
 
   const allLessons = course?.modules.flatMap((m) => m.lessons.sort((a, b) => a.order - b.order)).sort((a, b) => a.order - b.order) ?? [];
   const currentIdx = allLessons.findIndex((l) => l.id === currentLesson?.id);
@@ -120,18 +125,23 @@ function StudentLearnInner() {
   const completedCount = Object.values(progress).filter(Boolean).length;
   const localProgressPercent =
     allLessons.length > 0 ? Math.round((completedCount / allLessons.length) * 100) : 0;
-  const progressPercent = progressData?.completionPercent ?? localProgressPercent;
+  const progressPercent = isCourseCompleted
+    ? 100
+    : (progressData?.completionPercent ?? localProgressPercent);
 
   const loadCourse = useCallback(async () => {
     if (!courseId || !accessToken) return;
+    setLoadError(null);
+    setLoading(true);
     try {
       const raw = await getCourseById(courseId, accessToken);
       const data = normalizeCourse(raw as CourseDetail);
       setCourse(data);
       const first = data.modules[0]?.lessons[0];
       if (first) setCurrentLesson(first);
-    } catch {
-      // fallback
+    } catch (err) {
+      setLoadError(getErrorMessage(err, 'Could not load this course. You may need to enroll first.'));
+      setCourse(null);
     } finally {
       setLoading(false);
     }
@@ -139,11 +149,14 @@ function StudentLearnInner() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push('/login?redirect=/student/enrolled');
+      const redirect = courseId
+        ? `/student/learn?courseId=${encodeURIComponent(courseId)}`
+        : '/student/enrolled';
+      router.push(`/login?redirect=${encodeURIComponent(redirect)}`);
       return;
     }
     loadCourse();
-  }, [loadCourse, isAuthenticated, router]);
+  }, [loadCourse, isAuthenticated, router, courseId]);
 
   const handleWatchProgress = useCallback((sec: number) => {
     if (!currentLesson || !accessToken) return;
@@ -172,8 +185,10 @@ function StudentLearnInner() {
     try {
       await markLessonComplete(lessonId, accessToken);
       await invalidateAfterLessonComplete(queryClient, courseId);
+      toast.success(isCourseCompleted ? 'Lesson reviewed' : 'Lesson marked complete');
       if (nextLesson) setCurrentLesson(nextLesson);
-    } catch {
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Could not mark lesson complete'));
       await refetchProgress();
     } finally {
       setCompleting(false);
@@ -204,18 +219,40 @@ function StudentLearnInner() {
     );
   }
 
+  if (loadError || !course) {
+    return (
+      <div className="min-h-screen bg-white font-poppins">
+        <PageError
+          title="Couldn't load this course"
+          message={loadError ?? 'This course may have been removed or you may not have access yet.'}
+          onRetry={() => void loadCourse()}
+          retrying={loading}
+        />
+        <div className="flex flex-wrap items-center justify-center gap-3 pb-16">
+          <Button asChild variant="outline">
+            <Link href="/student/enrolled">My learning</Link>
+          </Button>
+          <Button asChild className="bg-brand-green hover:bg-brand-green-dark">
+            <Link href="/search">Browse courses</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-brand-green font-poppins">
       {/* Top bar */}
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/10 px-4">
-        <Link href="/student/enrolled" className="flex items-center gap-2 text-white/70 hover:text-white">
-          <ChevronLeft className="h-4 w-4" />
+        <Link href="/student/enrolled" className="flex shrink-0 items-center gap-1.5 text-white/70 hover:text-white">
+          <ChevronLeft className="h-4 w-4 shrink-0" />
+          <span className="hidden text-xs font-medium sm:inline">My learning</span>
           <BrandLogo size="sm" variant="onDark" />
         </Link>
 
         <div className="min-w-0 flex-1">
           <p className="line-clamp-1 text-sm font-semibold text-white">
-            {course?.title ?? 'Loading…'}
+            {course.title}
           </p>
         </div>
 
@@ -226,7 +263,9 @@ function StudentLearnInner() {
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <span className="text-xs text-white/60">{progressPercent}% · {learningMinutes} min learned</span>
+          <span className="text-xs text-white/60">
+            {progressPercent}%{isCourseCompleted ? ' · Completed' : ''} · {learningMinutes} min learned
+          </span>
         </div>
 
         {courseId && <BookmarkButton courseId={courseId} className="text-white/70 hover:text-white" />}
@@ -376,7 +415,7 @@ function StudentLearnInner() {
 
                     <ReportDialog targetType="CONTENT" targetLabel="lesson" metadata={{ lessonId: currentLesson.id, courseId }} />
 
-                    {!progress[currentLesson.id] && currentLesson.type !== 'quiz' && currentLesson.type !== 'assignment' ? (
+                    {!isCourseCompleted && !progress[currentLesson.id] && currentLesson.type !== 'quiz' && currentLesson.type !== 'assignment' ? (
                       <Button
                         type="button"
                         onClick={() => markComplete(currentLesson.id)}
@@ -385,18 +424,20 @@ function StudentLearnInner() {
                       >
                         {completing ? 'Saving…' : 'Mark as complete'}
                       </Button>
-                    ) : progress[currentLesson.id] && nextLesson ? (
+                    ) : (isCourseCompleted || progress[currentLesson.id]) && nextLesson ? (
                       <Button
                         type="button"
                         onClick={() => setCurrentLesson(nextLesson)}
                         className="rounded-full bg-brand-green px-6 font-bold hover:bg-brand-green-dark"
                       >
-                        Continue →
+                        {isCourseCompleted ? 'Next lesson →' : 'Continue →'}
                       </Button>
                     ) : (
                       <div className="flex items-center gap-2 rounded-full bg-brand-mint/20 px-4 py-2">
                         <Award className="h-5 w-5 text-brand-green" />
-                        <span className="text-sm font-bold text-brand-green">Course complete</span>
+                        <span className="text-sm font-bold text-brand-green">
+                          {isCourseCompleted ? 'Reviewing completed course' : 'Course complete'}
+                        </span>
                       </div>
                     )}
                   </div>

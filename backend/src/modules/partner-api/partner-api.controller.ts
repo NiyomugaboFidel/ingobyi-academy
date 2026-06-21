@@ -62,7 +62,10 @@ export class PartnerApiController {
   @Get('courses/:id')
   @ApiKeyScopes(ApiKeyScope.COURSE_READ)
   @ApiOperation({ summary: 'Course detail with curriculum metadata' })
-  getCourse(@Req() req: RequestWithUser, @Param('id', ParseCuidPipe) id: string) {
+  getCourse(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseCuidPipe) id: string,
+  ) {
     return this.partnerApi.getCourseById(req.apiKey!, id);
   }
 
@@ -75,7 +78,9 @@ export class PartnerApiController {
 
   @Get('enrollments')
   @ApiKeyScopes(ApiKeyScope.ENROLLMENT_READ)
-  @ApiOperation({ summary: 'List enrollments (filter by learner/course/status)' })
+  @ApiOperation({
+    summary: 'List enrollments (filter by learner/course/status)',
+  })
   listEnrollments(
     @Req() req: RequestWithUser,
     @Query() query: PartnerEnrollmentsQueryDto,
@@ -106,7 +111,10 @@ export class PartnerApiController {
 
   @Get('learners/:id/learning')
   @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
-  @ApiOperation({ summary: 'Full learning record — enrollments, progress, certs, achievements' })
+  @ApiOperation({
+    summary:
+      'Full learning record — enrollments, progress, certs, achievements',
+  })
   learnerLearning(
     @Req() req: RequestWithUser,
     @Param('id', ParseCuidPipe) id: string,
@@ -147,7 +155,9 @@ export class PartnerApiController {
 
   @Get('learners/:id/achievements')
   @ApiKeyScopes(ApiKeyScope.LEARNER_READ)
-  @ApiOperation({ summary: 'Unified achievements (certificates, courses, badges)' })
+  @ApiOperation({
+    summary: 'Unified achievements (certificates, courses, badges)',
+  })
   learnerAchievements(
     @Req() req: RequestWithUser,
     @Param('id', ParseCuidPipe) id: string,

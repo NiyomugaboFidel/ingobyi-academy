@@ -18,6 +18,14 @@ cd frontend && npm install
 # 3. Start both servers
 make dev
 # or: ./scripts/dev-local.sh
+# or: npm run dev
+```
+
+**Production mode (local):**
+
+```bash
+npm run build   # build backend + frontend once
+npm run start   # API :3001 + frontend :3000
 ```
 
 - **Frontend:** http://localhost:3000  
@@ -29,6 +37,16 @@ make dev
 ## Run with Docker (in-house testers)
 
 See **[DEPLOY.md](DEPLOY.md)** for full instructions.
+
+## Deploy on Railway (testing / shareable URL)
+
+See **[RAILWAY.md](RAILWAY.md)** — two services (`backend` + `frontend`) + PostgreSQL, auto-deploy from GitHub.
+
+```bash
+./scripts/railway-setup.sh    # checklist + generate JWT secrets
+./scripts/railway-seed.sh      # demo users (after deploy)
+./scripts/railway-health.sh https://your-api.up.railway.app https://your-app.up.railway.app
+```
 
 ```bash
 make docker-init    # create .env with secrets

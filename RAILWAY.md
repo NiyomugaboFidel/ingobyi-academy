@@ -1,138 +1,177 @@
-# Deploy Ingobyi Academy on Railway
+# Deploy Ingobyi Academy on Railway (testing)
 
-Railway runs **3 services** from this monorepo:
+Use **two separate Railway services** from the same GitHub repo — one for the API, one for the frontend. Do **not** run both in a single service or with `concurrently`.
 
-| Service | Root directory | URL |
-|---------|----------------|-----|
-| **PostgreSQL** | (Railway plugin) | internal only |
-| **API** | `/backend` | `https://your-api.up.railway.app` |
-| **Frontend** | `/frontend` | `https://your-app.up.railway.app` |
+| Service | Root directory | Build | Start |
+|---------|----------------|-------|-------|
+| **PostgreSQL** | Railway plugin | — | — |
+| **API** | `backend` | `npm run build` | `npm run start:railway` |
+| **Frontend** | `frontend` | `npm run build` | `npm run start` |
 
----
+Config files (auto-detected when root directory is set):
 
-## 1. Create Railway project
-
-1. Go to [railway.app](https://railway.app) → **New Project**
-2. **Deploy from GitHub repo** → select `ingobyi-academy`
-3. **Add PostgreSQL**: Project → **+ New** → **Database** → **PostgreSQL**
+- `backend/railway.toml` + `backend/nixpacks.toml`
+- `frontend/railway.toml` + `frontend/nixpacks.toml`
 
 ---
 
-## 2. Deploy the API (backend)
+## Quick setup (dashboard)
 
-1. **+ New** → **GitHub Repo** → same repo
+### 0. Prepare locally (optional)
+
+```bash
+./scripts/railway-setup.sh   # prints secrets + deploy checklist
+```
+
+### 1. Create project
+
+1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+2. **+ New** → **Database** → **PostgreSQL**
+
+### 2. Backend (API) service
+
+1. **+ New** → **GitHub Repo** → same repository
 2. **Settings** → **Root Directory** → `backend`
-3. **Settings** → **Networking** → **Generate Domain** (e.g. `ingobyi-api-production.up.railway.app`)
-4. **Variables** tab — add:
+3. **Settings** → rename service to `api` (optional, for variable references)
+4. **Networking** → **Generate Domain** → note URL, e.g. `https://ingobyi-api.up.railway.app`
+5. **Variables** — copy from `backend/.env.railway.example`:
 
 ```env
-NODE_ENV=production
-FRONTEND_URL=https://YOUR-FRONTEND-DOMAIN.up.railway.app
-
+NODE_ENV=staging
+FRONTEND_URL=https://YOUR-FRONTEND.up.railway.app
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 
 JWT_SECRET=<openssl rand -hex 32>
 REFRESH_SECRET=<openssl rand -hex 32>
-JWT_EXPIRES_IN=15m
-REFRESH_EXPIRES_IN=7d
+JWT_EXPIRES_IN=1h
+REFRESH_EXPIRES_IN=180d
 
 COOKIE_SECURE=true
 COOKIE_DOMAIN=
 
 ENABLE_SWAGGER=true
-SHOW_DEMO_CREDENTIALS=true
 RUN_SEED=false
 
 THROTTLE_TTL=60
 THROTTLE_LIMIT=200
-
-# Optional — image uploads
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
-# Optional — email OTP
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=noreply@ingobyi.com
 ```
 
-5. Deploy. Migrations run automatically (`npm run start:railway`).
-6. Verify: `https://YOUR-API-DOMAIN.up.railway.app/api/health`
+6. Deploy. On each start the API runs `prisma migrate deploy` automatically via `npm run start:railway`.
+7. Verify: `curl https://YOUR-API.up.railway.app/api/health`
 
----
+> **Important:** Railway must use start command `npm run start:railway` (configured in `backend/railway.toml`).  
+> Do **not** use `npm start` or `npm run start:prod` — those skip migrations.
 
-## 3. Deploy the frontend
+### 3. Frontend service
 
-1. **+ New** → **GitHub Repo** → same repo again
+1. **+ New** → **GitHub Repo** → same repository
 2. **Root Directory** → `frontend`
-3. **Networking** → **Generate Domain** (e.g. `ingobyi-app-production.up.railway.app`)
-4. **Variables** — set **before** build (Next.js bakes `NEXT_PUBLIC_*` at build time):
+3. Rename service to `frontend` (optional)
+4. **Networking** → **Generate Domain**
+5. **Variables** — set **before** first build (`NEXT_PUBLIC_*` is baked at build time):
 
 ```env
 NODE_ENV=production
-
-NEXT_PUBLIC_API_URL=https://YOUR-API-DOMAIN.up.railway.app/api
-NEXT_PUBLIC_WS_URL=https://YOUR-API-DOMAIN.up.railway.app
+NEXT_PUBLIC_API_URL=https://YOUR-API.up.railway.app/api
+NEXT_PUBLIC_WS_URL=https://YOUR-API.up.railway.app
 NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=true
 ```
 
-5. Deploy and open `https://YOUR-FRONTEND-DOMAIN.up.railway.app`
-
----
-
-## 4. Link frontend URL on API
-
-After frontend has a domain, update **API service** variables:
+Or with service references (if services are named `api` and `frontend`):
 
 ```env
-FRONTEND_URL=https://YOUR-FRONTEND-DOMAIN.up.railway.app
+NEXT_PUBLIC_API_URL=https://${{api.RAILWAY_PUBLIC_DOMAIN}}/api
+NEXT_PUBLIC_WS_URL=https://${{api.RAILWAY_PUBLIC_DOMAIN}}
+NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=true
 ```
 
-Redeploy API so CORS and WebSocket allow the frontend origin.
+6. Deploy and open the frontend URL.
 
----
+### 4. Link CORS (required)
 
-## 5. Seed demo data (first time)
+Update **API** service:
 
-Install [Railway CLI](https://docs.railway.app/develop/cli):
+```env
+FRONTEND_URL=https://YOUR-FRONTEND.up.railway.app
+```
+
+Redeploy the API so CORS, cookies, and WebSockets accept the frontend origin.
+
+### 5. Seed demo data (first time only)
+
+**Option A — Railway CLI (recommended)**
 
 ```bash
 npm i -g @railway/cli
 railway login
-cd backend
-railway link          # select project + API service
-railway run npm run prisma:seed
+./scripts/railway-seed.sh
 ```
 
-Demo login: `super@ingobyi.com` / `password123`
+**Option B — one-time env var**
+
+Set on API service: `RUN_SEED=true` → deploy → set back to `false` → redeploy.
+
+Demo login: `super@ingobyi.com` / `password123` (also `student@ingobyi.com`)
+
+### 6. Smoke test
+
+```bash
+./scripts/railway-health.sh \
+  https://YOUR-API.up.railway.app \
+  https://YOUR-FRONTEND.up.railway.app
+```
 
 ---
 
-## Service reference
+## Auto-deploy on git push
 
-Copy from `backend/.env.railway.example` and `frontend/.env.railway.example`.
+Railway redeploys each service when files under its **Root Directory** change.
 
-### Railway variable references
+| Push changes in… | Redeploys |
+|------------------|-----------|
+| `backend/**` | API service only |
+| `frontend/**` | Frontend service only |
 
-| Variable | Value |
-|----------|--------|
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
-| `FRONTEND_URL` | `https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}` *(if service named `frontend`)* |
-| `NEXT_PUBLIC_API_URL` | `https://${{api.RAILWAY_PUBLIC_DOMAIN}}/api` *(if service named `api`)* |
-
-Rename services in Railway to `api` and `frontend` to use these references, or paste full URLs manually.
+Connect both services to the same branch (e.g. `main`) in **Settings → Source**.
 
 ---
 
-## Custom domains
+## Environment templates
 
-1. Railway → service → **Settings** → **Custom Domain**
-2. Point DNS CNAME to Railway
-3. Update `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`
-4. Redeploy **both** services
+| File | Service |
+|------|---------|
+| `backend/.env.railway.example` | API variables |
+| `frontend/.env.railway.example` | Frontend variables |
+
+### Important variables
+
+| Variable | Where | Notes |
+|----------|-------|-------|
+| `DATABASE_URL` | API | `${{Postgres.DATABASE_URL}}` |
+| `FRONTEND_URL` | API | Exact frontend URL, `https://`, no trailing slash |
+| `NEXT_PUBLIC_API_URL` | Frontend | Must end with `/api` |
+| `NEXT_PUBLIC_WS_URL` | Frontend | API origin, **no** `/api` |
+| `PORT` | Both | Set by Railway — do not override |
+| `RUN_SEED` | API | `true` once for demo data, then `false` |
+
+---
+
+## CLI cheat sheet
+
+```bash
+# Logs
+railway link          # in backend/ or frontend/
+railway logs
+
+# Seed
+./scripts/railway-seed.sh
+
+# Shell on API container
+cd backend && railway run sh
+
+# Redeploy from CLI
+railway up
+```
 
 ---
 
@@ -140,29 +179,26 @@ Rename services in Railway to `api` and `frontend` to use these references, or p
 
 | Issue | Fix |
 |-------|-----|
-| API build fails | Check `DATABASE_URL` is linked to Postgres |
-| Frontend can't reach API | `NEXT_PUBLIC_API_URL` must include `/api` and use `https://` |
-| Login works, refresh fails | `COOKIE_SECURE=true`, `FRONTEND_URL` exact match, empty `COOKIE_DOMAIN` |
+| API build fails | Link `DATABASE_URL=${{Postgres.DATABASE_URL}}` to Postgres plugin |
+| Frontend can't reach API | `NEXT_PUBLIC_API_URL` must be `https://.../api` — redeploy frontend after change |
+| Login works, refresh fails | `COOKIE_SECURE=true`, `FRONTEND_URL` matches browser URL exactly, empty `COOKIE_DOMAIN` |
 | CORS error | Update `FRONTEND_URL` on API, redeploy API |
-| WebSocket fails | `NEXT_PUBLIC_WS_URL` = API origin (no `/api`) |
-| DB connection error | Use `${{Postgres.DATABASE_URL}}`; Railway adds SSL automatically |
-| Env change not applied (frontend) | Redeploy frontend — `NEXT_PUBLIC_*` needs rebuild |
-
-### Logs
-
-```bash
-railway logs -s api
-railway logs -s frontend
-```
+| WebSocket fails | `NEXT_PUBLIC_WS_URL` = API origin without `/api` |
+| Env change not applied (frontend) | Redeploy frontend — `NEXT_PUBLIC_*` requires rebuild |
+| Migrations failed | Check API logs; ensure Postgres is running and `DATABASE_URL` is set |
+| `Permission` table does not exist | Migrations not applied — use `start:railway`, or run `make railway-migrate` locally |
+| Seed fails | Use `./scripts/railway-seed.sh` or set `RUN_SEED=true` once |
 
 ---
 
-## Production checklist (after in-house testing)
+## Production checklist (after testing)
 
+- [ ] `NODE_ENV=production` on API
 - [ ] `ENABLE_SWAGGER=false`
 - [ ] `NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=false`
-- [ ] `SHOW_DEMO_CREDENTIALS=false` on API if used
-- [ ] Strong `JWT_SECRET` / `REFRESH_SECRET` (never use defaults)
-- [ ] Do **not** run seed in production
+- [ ] `RUN_SEED=false` (never seed production)
+- [ ] Strong `JWT_SECRET` / `REFRESH_SECRET`
 - [ ] Configure SMTP + Cloudinary
-- [ ] Custom domains + HTTPS (Railway provides TLS)
+- [ ] Custom domains + update all URLs
+
+For Docker-based in-house hosting instead, see **[DEPLOY.md](DEPLOY.md)**.

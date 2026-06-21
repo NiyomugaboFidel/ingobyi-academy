@@ -115,7 +115,7 @@ export function ChatInput({
       }
       setPending((prev) => [...prev, ...uploaded]);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(getErrorMessage(err, 'Could not upload file'));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';

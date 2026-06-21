@@ -32,7 +32,11 @@ type PdfDoc = InstanceType<typeof PDFDocument>;
 @Injectable()
 export class CertificatePdfService {
   private readonly logger = new Logger(CertificatePdfService.name);
-  private readonly storageDir = path.join(process.cwd(), 'storage', 'certificates');
+  private readonly storageDir = path.join(
+    process.cwd(),
+    'storage',
+    'certificates',
+  );
 
   ensureStorageDir(): void {
     fs.mkdirSync(this.storageDir, { recursive: true });
@@ -101,27 +105,28 @@ export class CertificatePdfService {
   }
 
   /** Large hero title — fills the upper certificate area. */
-  private drawHeroTitle(doc: PdfDoc, margin: number, contentW: number, y: number): number {
+  private drawHeroTitle(
+    doc: PdfDoc,
+    margin: number,
+    contentW: number,
+    y: number,
+  ): number {
     const pageW = doc.page.width;
 
     doc.font('Times-Bold').fillColor(COLORS.accent);
 
-    doc
-      .fontSize(44)
-      .text('CERTIFICATE', margin, y, {
-        width: contentW,
-        align: 'center',
-        characterSpacing: 5,
-      });
+    doc.fontSize(44).text('CERTIFICATE', margin, y, {
+      width: contentW,
+      align: 'center',
+      characterSpacing: 5,
+    });
 
     y = doc.y + 2;
-    doc
-      .fontSize(34)
-      .text('OF COMPLETION', margin, y, {
-        width: contentW,
-        align: 'center',
-        characterSpacing: 4,
-      });
+    doc.fontSize(34).text('OF COMPLETION', margin, y, {
+      width: contentW,
+      align: 'center',
+      characterSpacing: 4,
+    });
 
     y = doc.y + 16;
     doc
@@ -216,7 +221,10 @@ export class CertificatePdfService {
         .font('Times-Roman')
         .fontSize(12)
         .fillColor(COLORS.muted)
-        .text('For completing', margin, y, { width: contentW, align: 'center' });
+        .text('For completing', margin, y, {
+          width: contentW,
+          align: 'center',
+        });
 
       y = doc.y + 8;
       doc
@@ -303,7 +311,11 @@ export class CertificatePdfService {
     variant: 'leader' | 'ceo',
   ): void {
     doc.save();
-    doc.lineWidth(1.2).strokeColor(COLORS.ink).lineCap('round').lineJoin('round');
+    doc
+      .lineWidth(1.2)
+      .strokeColor(COLORS.ink)
+      .lineCap('round')
+      .lineJoin('round');
 
     if (variant === 'leader') {
       doc

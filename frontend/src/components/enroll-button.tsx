@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { checkEnrollment, enroll } from '@/lib/api/enrollments';
 import { invalidateAfterEnroll, learningKeys } from '@/lib/query/learning';
 import { useAuthStore } from '@/lib/auth/store';
+import { getErrorMessage } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -22,7 +23,7 @@ type Props = {
 export function EnrollButton({ courseId, courseSlug, className, compact }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { accessToken, user, isAuthenticated } = useAuthStore();
+  const { accessToken, isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
   const { data: enrollment, isLoading: checking } = useQuery({
@@ -34,21 +35,22 @@ export function EnrollButton({ courseId, courseSlug, className, compact }: Props
 
   async function handleEnroll() {
     if (!isAuthenticated() || !accessToken) {
-      router.push(`/login?redirect=/catalog/${courseSlug ?? ''}`);
+      const returnTo = courseSlug ? `/catalog/${courseSlug}` : `/catalog`;
+      router.push(`/login?redirect=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    if (enrollment?.enrolled) {
+      router.push(`/student/learn?courseId=${courseId}`);
       return;
     }
     setLoading(true);
     try {
       await enroll(courseId, accessToken);
       await invalidateAfterEnroll(queryClient, courseId);
-      toast.success('Enrolled successfully!');
-      if (user?.platformRole === 'STUDENT') {
-        router.push('/student/enrolled');
-      } else {
-        router.refresh();
-      }
+      toast.success('Enrolled! Starting your course…');
+      router.push(`/student/learn?courseId=${courseId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Enrollment failed');
+      toast.error(getErrorMessage(err, 'Could not enroll in this course'));
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,7 @@ export function EnrollButton({ courseId, courseSlug, className, compact }: Props
       <div className={cn('flex flex-1 flex-col gap-2', className)}>
         <div className="flex items-center justify-center gap-2 rounded-lg border border-brand-green/25 bg-brand-mint-wash px-3 py-2 text-sm font-semibold text-brand-green">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          {isCompleted ? 'Completed & enrolled' : 'Already enrolled'}
+          {isCompleted ? 'Course completed' : 'Already enrolled'}
         </div>
         <Button asChild className="w-full bg-brand-green hover:bg-brand-green-dark">
           <Link href={learnHref}>

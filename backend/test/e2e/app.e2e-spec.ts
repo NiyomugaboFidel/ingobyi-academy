@@ -133,9 +133,7 @@ describe('Ingobyi Academy API (e2e)', () => {
 
   describe('Protected without token', () => {
     it('GET /api/users/me — 401', () => {
-      return request(app.getHttpServer())
-        .get('/api/users/me')
-        .expect(401);
+      return request(app.getHttpServer()).get('/api/users/me').expect(401);
     });
   });
 });

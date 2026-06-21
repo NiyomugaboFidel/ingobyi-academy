@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertCircle, Home, RefreshCw } from 'lucide-react';
+import { AlertCircle, Home, LayoutDashboard, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getRoleHome, useAuthStore } from '@/lib/auth/store';
 import { cn } from '@/lib/utils';
 
 type PageErrorProps = {
@@ -11,6 +12,7 @@ type PageErrorProps = {
   onRetry?: () => void;
   retrying?: boolean;
   showHomeLink?: boolean;
+  showDashboardLink?: boolean;
 };
 
 export function PageError({
@@ -19,7 +21,11 @@ export function PageError({
   onRetry,
   retrying = false,
   showHomeLink = true,
+  showDashboardLink = true,
 }: PageErrorProps) {
+  const user = useAuthStore((s) => s.user);
+  const dashboardHref = user ? getRoleHome(user) : null;
+
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center px-4 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
@@ -37,6 +43,14 @@ export function PageError({
           >
             <RefreshCw className={cn('h-4 w-4', retrying && 'animate-spin')} />
             Try again
+          </Button>
+        )}
+        {showDashboardLink && dashboardHref && (
+          <Button asChild variant="outline" className="gap-2 border-brand-green/20">
+            <Link href={dashboardHref}>
+              <LayoutDashboard className="h-4 w-4" />
+              Back to dashboard
+            </Link>
           </Button>
         )}
         {showHomeLink && (

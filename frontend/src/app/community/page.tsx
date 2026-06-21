@@ -130,14 +130,14 @@ export default function CommunityPage() {
               Share updates, discover people, and connect like a modern chat network.
             </p>
           </div>
-          <Button asChild variant="outline" size="sm" className="rounded-full">
+          <Button asChild variant="outline" size="sm" className="w-full shrink-0 rounded-full sm:w-auto">
             <Link href="/messages">
               <MessageCircle className="mr-1.5 h-4 w-4" /> Open messages
             </Link>
           </Button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
           {/* Left navigation rail */}
           <nav className="hidden lg:block">
             <div className="sticky top-20 space-y-2 rounded-2xl border border-border bg-card p-2 shadow-sm">
@@ -162,15 +162,15 @@ export default function CommunityPage() {
 
           {/* Main panel */}
           <div className="min-w-0 space-y-4">
-            {/* Mobile tabs */}
-            <div className="flex gap-2 lg:hidden">
+            {/* Mobile & tablet tabs */}
+            <div className="scroll-touch scrollbar-thin -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden">
               {TABS.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => setTab(id)}
                   className={cn(
-                    'inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition',
+                    'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition sm:px-4',
                     tab === id
                       ? 'bg-brand-green text-white'
                       : 'border border-border bg-card text-muted-foreground',
@@ -388,8 +388,8 @@ export default function CommunityPage() {
             )}
           </div>
 
-          {/* Right sidebar */}
-          <aside className="space-y-4">
+          {/* Right sidebar — below feed on tablet, column on desktop */}
+          <aside className="grid gap-4 sm:grid-cols-2 lg:block lg:space-y-4">
             {user && myProfile && (
               <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                 <Link href={`/users/${user.id}`} className="flex items-center gap-3 hover:opacity-90">

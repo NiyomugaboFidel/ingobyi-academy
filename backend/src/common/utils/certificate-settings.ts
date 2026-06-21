@@ -19,7 +19,6 @@ export const DEFAULT_CERTIFICATE_SIGNATORIES: CertificateSignatorySettings = {
 
 export function resolveCertificateSettings(
   orgSettings: unknown,
-  orgName?: string | null,
 ): CertificateSignatorySettings {
   const root =
     orgSettings && typeof orgSettings === 'object'

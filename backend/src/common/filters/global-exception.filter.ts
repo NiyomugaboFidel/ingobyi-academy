@@ -7,7 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { toUserErrorMessage } from '../utils/user-error-message';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -16,44 +17,53 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'staging';
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let error = 'Internal Server Error';
-    let message = 'An unexpected error occurred';
+    let rawMessage: string | string[] | undefined;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const exceptionResponse = exception.getResponse();
       if (typeof exceptionResponse === 'string') {
-        message = exceptionResponse;
-        error = exception.name;
+        rawMessage = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
         const body = exceptionResponse as Record<string, unknown>;
-        message =
-          (Array.isArray(body.message)
-            ? body.message.join(', ')
-            : (body.message as string)) ?? message;
-        error = (body.error as string) ?? exception.name;
+        rawMessage = body.message as string | string[] | undefined;
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       if (exception.code === 'P2002') {
         statusCode = HttpStatus.CONFLICT;
-        error = 'Conflict';
-        message = 'A record with this value already exists';
+        rawMessage = 'A record with this value already exists';
       } else if (exception.code === 'P2025') {
         statusCode = HttpStatus.NOT_FOUND;
-        error = 'Not Found';
-        message = 'Record not found';
+        rawMessage = 'Record not found';
+      } else {
+        this.logger.error(
+          `Prisma ${exception.code}: ${exception.message}`,
+          exception.stack,
+        );
+        rawMessage = undefined;
       }
     } else if (exception instanceof Error) {
-      this.logger.error(exception.message, exception.stack);
-      message = exception.message;
-      error = exception.name;
+      this.logger.error(
+        `${request.method} ${request.url} — ${exception.message}`,
+        exception.stack,
+      );
+      rawMessage = isProduction ? undefined : exception.message;
+    } else {
+      this.logger.error(
+        `Unknown exception on ${request.method} ${request.url}`,
+      );
     }
+
+    const message = toUserErrorMessage(rawMessage, statusCode, isProduction);
 
     response.status(statusCode).json({
       success: false,
-      error,
       message,
       statusCode,
     });

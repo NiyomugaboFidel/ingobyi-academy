@@ -9,11 +9,11 @@ const aboutLinks = [
   { href: '/about', label: 'About' },
   { href: '/programs', label: 'Programs' },
   { href: '/partners', label: 'Partners' },
+  { href: '/events', label: 'Events' },
   { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Events' },
 ];
 const learnerLinks = [
-  { href: '/catalog', label: 'Courses' },
+  { href: '/search', label: 'Browse courses' },
   { href: '/login?mode=signup', label: 'Sign up' },
   { href: '/login', label: 'Sign in' },
   { href: '/contact', label: 'Contact' },

@@ -1,4 +1,3 @@
-import { Type } from 'class-transformer';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 import { EnrollmentStatus } from '@prisma/client';
 import { PaginationDto } from '../../../common/dto/pagination.dto';

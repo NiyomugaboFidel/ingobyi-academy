@@ -35,6 +35,13 @@ export default function SettingsPage() {
     <DashboardShell>
         <PageHeader title="Settings" description="Manage your account preferences and system configuration." />
 
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">Some settings are preview-only</p>
+          <p className="mt-0.5 text-amber-800/90">
+            Appearance (theme) works today. Notification, language, security, and account actions will be saved in a future update.
+          </p>
+        </div>
+
         <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[220px_1fr]">
           {/* Sidebar nav */}
           <nav className="space-y-1 rounded-xl border border-brand-green/10 bg-white p-2 shadow-sm">

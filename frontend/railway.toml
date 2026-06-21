@@ -1,6 +1,6 @@
 # Railway — frontend (Next.js) service
-# Dashboard: set Root Directory = /frontend
-# Set NEXT_PUBLIC_* vars BEFORE first deploy (they are baked at build time).
+# Dashboard: Settings → Root Directory = frontend
+# Set NEXT_PUBLIC_* vars BEFORE first deploy (baked at build time).
 
 [build]
 builder = "NIXPACKS"

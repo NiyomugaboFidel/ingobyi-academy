@@ -89,7 +89,7 @@ export default function HomePage() {
       <main id="main">
         {/* ── Hero ── */}
         <section className="relative w-full overflow-hidden border-b border-brand-green/8 bg-white">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[70vh] w-full">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[min(85vh,820px)] w-full">
             <img
               src="/landing/header-bg.png"
               alt=""
@@ -97,6 +97,7 @@ export default function HomePage() {
               width={1920}
               height={1500}
             />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/88 via-white/72 to-white" />
           </div>
           <div className="relative z-10 mx-auto flex min-h-[70vh] w-full max-w-7xl flex-col justify-center px-4 py-8 sm:px-6 md:py-10 lg:px-8">
             <div className="grid w-full items-center gap-8 lg:grid-cols-2 lg:gap-x-12">
@@ -113,16 +114,23 @@ export default function HomePage() {
                   Ingobyi Academy provides hands-on STEM education, creative arts, and digital skills training for Rwandan learners — online and in schools.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Button asChild size="lg" className="h-12 rounded-full bg-brand-green px-8 text-base font-bold hover:bg-brand-green-dark">
-                    <a href="#discover-courses">Get started</a>
+                  <Button asChild size="lg" className="h-12 rounded-full bg-brand-green px-8 text-base font-bold shadow-md hover:bg-brand-green-dark">
+                    <Link href="/search">Get started</Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-12 rounded-full border-2 border-brand-green/25 bg-white px-6 text-base font-bold text-brand-green hover:bg-brand-green/5">
+                  <Button asChild size="lg" variant="outline" className="h-12 rounded-full border-2 border-brand-green/25 bg-white/90 px-6 text-base font-bold text-brand-green backdrop-blur-sm hover:bg-brand-green/5">
                     <a href="#about-videos" className="inline-flex items-center gap-2">
                       <Play className="h-4 w-4 fill-brand-green" />
                       Watch video
                     </a>
                   </Button>
                 </div>
+                <p className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-brand-ink/55">
+                  <span>300+ learners</span>
+                  <span className="hidden h-1 w-1 rounded-full bg-brand-ink/30 sm:inline" />
+                  <span>12+ partner schools</span>
+                  <span className="hidden h-1 w-1 rounded-full bg-brand-ink/30 sm:inline" />
+                  <span>Certificates on completion</span>
+                </p>
               </motion.div>
 
               <motion.div
@@ -291,6 +299,73 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── Discover courses ── */}
+        <section id="discover-courses" className="scroll-mt-24 border-b border-brand-green/8 bg-white py-12 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-green">Ingobyi Academy</p>
+              <h2 className="mt-2 text-3xl font-extrabold text-brand-ink">Discover courses online</h2>
+              <p className="mt-3 text-base text-brand-ink/65">
+                Self-paced lessons, quizzes, and certificates — browse by topic or jump straight into search.
+              </p>
+            </motion.div>
+            <motion.div {...stagger} className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { label: 'Technology & coding', href: '/search?category=technology', image: '/blog-1/ingobyi-first-9.jpg' },
+                { label: 'Creative arts', href: '/search?category=creative-arts', image: '/blog-1/ingobyi-first-10.jpg' },
+                { label: 'Life skills', href: '/search?category=skills', image: '/blog-1/ingobyi-first-11.jpg' },
+                { label: 'Sports & wellness', href: '/search?category=sports', image: '/blog-2/school-3.jpeg' },
+                { label: 'Media & content', href: '/search?category=media', image: '/blog-2/school-4.jpeg' },
+                { label: 'Business basics', href: '/search?category=business', image: '/blog-2/school-5.jpeg' },
+              ].map((cat) => (
+                <motion.div key={cat.label} {...staggerItem}>
+                  <Link
+                    href={cat.href}
+                    className="group flex overflow-hidden rounded-2xl border border-brand-green/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-green/25 hover:shadow-md"
+                  >
+                    <div className="h-24 w-28 shrink-0 overflow-hidden sm:h-28 sm:w-32">
+                      <img src={cat.image} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center px-4 py-3">
+                      <p className="text-sm font-bold text-brand-ink group-hover:text-brand-green">{cat.label}</p>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+            <motion.div {...fadeUp} className="mt-8 flex justify-center">
+              <Button asChild size="lg" className="rounded-full bg-brand-green px-8 font-bold hover:bg-brand-green-dark">
+                <Link href="/search">Browse all courses</Link>
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ── Trusted partners strip ── */}
+        <section className="border-b border-brand-green/8 bg-brand-mint-wash/50 py-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <p className="text-center text-xs font-bold uppercase tracking-[0.14em] text-brand-ink/50">
+              Trusted by schools &amp; partners across Rwanda
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+              {[
+                { src: '/logos/coregroup.png', alt: 'Core Group Ltd' },
+                { src: '/partener/codebridge.jpg', alt: 'CodeBridge' },
+                { src: '/partener/value-ed.jpeg', alt: 'Value Ed' },
+                { src: '/partener/school-1.jpg', alt: "LE PLAISIR D'ENFANT" },
+                { src: '/landing/ingoby-innovation-hub-green.png', alt: 'Ingobyi Innovation Hub' },
+              ].map((logo) => (
+                <div
+                  key={logo.alt}
+                  className="flex h-14 w-28 items-center justify-center rounded-xl border border-brand-green/8 bg-white px-3 py-2 shadow-sm sm:h-16 sm:w-36"
+                >
+                  <img src={logo.src} alt={logo.alt} className="max-h-full max-w-full object-contain" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── Learning journey ── */}
         <section className="relative overflow-hidden bg-brand-green-darker py-14 text-white sm:py-20">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(140,230,107,0.18),transparent)]" />
@@ -325,8 +400,8 @@ export default function HomePage() {
                 ))}
               </ol>
               <motion.div {...fadeUp} className="mt-10 flex flex-wrap justify-center gap-3">
-                <Button asChild size="lg" className="rounded-full border-0 bg-brand-mint px-8 font-bold text-brand-green-darker hover:bg-brand-mint-hover">
-                  <a href="#discover-courses">Browse courses</a>
+                <Button asChild size="lg" className="rounded-full bg-brand-mint px-8 font-bold text-brand-green-darker hover:bg-brand-mint-hover">
+                  <Link href="/search">Browse courses</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="rounded-full border-white/30 bg-transparent px-6 font-bold text-white hover:bg-white/10">
                   <Link href="/blog">Read success stories</Link>
@@ -372,10 +447,10 @@ export default function HomePage() {
               </Button>
             </motion.div>
             <motion.div {...fadeUp} className="relative">
-              <div className="relative aspect-[4/5] max-h-[420px] overflow-hidden rounded-[28px] bg-muted">
-                <img src="/blog-1/ingobyi-first-7.jpg" alt="" className="h-full w-full object-cover" />
+              <div className="relative aspect-[4/5] max-h-[420px] overflow-hidden rounded-[28px] border border-brand-green/10 shadow-lg md:max-h-none">
+                <img src="/blog-1/ingobyi-first-7.jpg" alt="Students at Ingobyi Innovation Hub" className="h-full w-full object-cover" loading="lazy" />
               </div>
-              <div className="relative z-10 -mt-24 mx-4 rounded-lg border border-brand-green/10 bg-white p-6 shadow-sm md:absolute md:bottom-8 md:left-8 md:right-auto md:mt-0 md:max-w-md">
+              <div className="relative z-10 mx-4 mt-4 rounded-2xl border border-brand-green/10 bg-white p-6 shadow-lg md:absolute md:bottom-8 md:left-8 md:mx-0 md:mt-0 md:max-w-md">
                 <div className="flex gap-1 text-brand-yellow">
                   {[1,2,3,4,5].map((i) => <Star key={i} className="h-4 w-4 fill-current" />)}
                 </div>
@@ -502,7 +577,7 @@ export default function HomePage() {
                 <Link href="/contact">Contact us</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="rounded-full border-white/30 bg-transparent px-6 font-bold text-white hover:bg-white/10">
-                <Link href="/catalog">Browse courses</Link>
+                <Link href="/search">Browse courses</Link>
               </Button>
             </div>
           </div>

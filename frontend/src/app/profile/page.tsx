@@ -103,7 +103,11 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['community', 'profile', user?.id] });
       setSaved(true);
+      toast.success('Profile updated');
       setTimeout(() => setSaved(false), 3000);
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err, 'Could not save profile changes'));
     },
   });
 

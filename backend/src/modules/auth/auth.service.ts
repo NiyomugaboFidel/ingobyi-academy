@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes, randomInt } from 'crypto';
 import { Response } from 'express';
 import { AuditAction, UserRole } from '@prisma/client';
+import { parseDurationToMs } from '../../common/utils/parse-duration';
 import { EnvConfig } from '../../config/configuration';
 import { resolveWorkspace } from '../../common/utils/resolve-effective-role';
 import { sanitizeUser } from '../../common/utils/sanitize-user';
@@ -172,7 +173,13 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.prisma.user.update({
       where: { email: dto.email.toLowerCase() },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        refreshTokenVersion: { increment: 1 },
+      },
+    });
+    await this.prisma.refreshSession.deleteMany({
+      where: { user: { email: dto.email.toLowerCase() } },
     });
     await this.prisma.otpChallenge.update({
       where: { id: challenge.id },
@@ -300,11 +307,11 @@ export class AuthService {
     };
     const accessToken = this.jwt.sign(payload);
     const refreshToken = randomBytes(48).toString('base64url');
-    const refreshDays = parseInt(
-      this.config.get('REFRESH_EXPIRES_IN', { infer: true }).replace('d', '') ||
-        '7',
+    const refreshMs = parseDurationToMs(
+      this.config.get('REFRESH_EXPIRES_IN', { infer: true }),
+      180,
     );
-    const expiresAt = new Date(Date.now() + refreshDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + refreshMs);
 
     await this.prisma.refreshSession.create({
       data: {
@@ -381,13 +388,13 @@ export class AuthService {
   }
 
   private setRefreshCookie(res: Response, token: string) {
-    const days = parseInt(
-      this.config.get('REFRESH_EXPIRES_IN', { infer: true }).replace('d', '') ||
-        '7',
+    const refreshMs = parseDurationToMs(
+      this.config.get('REFRESH_EXPIRES_IN', { infer: true }),
+      180,
     );
     res.cookie(REFRESH_COOKIE, token, {
       ...this.cookieOptions(),
-      maxAge: days * 24 * 60 * 60 * 1000,
+      maxAge: refreshMs,
     });
   }
 
