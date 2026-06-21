@@ -16,7 +16,7 @@ type Props = { slug: string };
 export function CatalogCourseUnavailable({ slug }: Props) {
   const token = useAuthStore((s) => s.accessToken);
   const role = useAuthStore((s) => s.user?.platformRole);
-  const orgRole = useAuthStore((s) => s.user?.orgRole);
+  const orgRole = useAuthStore((s) => s.user?.activeOrgRole);
   const canApprove = role === 'SUPERADMIN' || orgRole === 'ADMIN';
   const isTrainer = role === 'TRAINER' || role === 'SUPERADMIN';
   const queryClient = useQueryClient();

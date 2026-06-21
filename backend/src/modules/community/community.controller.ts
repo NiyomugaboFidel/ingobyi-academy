@@ -123,12 +123,6 @@ export class CommunityController {
     return this.communityService.leaderboard();
   }
 
-<<<<<<< HEAD
-  @Get('search')
-  @ApiOperation({ summary: 'Search learners by name or email' })
-  searchUsers(@Query('q') q: string, @Query('limit') limit?: string) {
-    return this.communityService.searchUsers(q, limit ? Number(limit) : 20);
-=======
   @Get('people/search')
   @ApiOperation({ summary: 'Search community members' })
   searchPeople(
@@ -169,7 +163,6 @@ export class CommunityController {
     @Query() query: FollowListQueryDto,
   ) {
     return this.communityService.following(userId, query);
->>>>>>> 0e94140 (add cetificate)
   }
 
   @Get(':userId/profile')

@@ -100,11 +100,7 @@ export class CoursesController {
 
   @Post(':id/approve')
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
-<<<<<<< HEAD
   @ApiOperation({ summary: 'Approve course for publication' })
-=======
-  @ApiOperation({ summary: 'Approve course' })
->>>>>>> 0e94140 (add cetificate)
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,
@@ -114,11 +110,7 @@ export class CoursesController {
 
   @Post(':id/reject')
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
-<<<<<<< HEAD
   @ApiOperation({ summary: 'Reject course publication request' })
-=======
-  @ApiOperation({ summary: 'Reject course' })
->>>>>>> 0e94140 (add cetificate)
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseCuidPipe) id: string,

@@ -1,13 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-<<<<<<< HEAD
-import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Eye, Plus, Pencil } from 'lucide-react';
-import { truncateHtml } from '@/lib/utils/html';
-=======
-import { BookOpen, Plus, Pencil } from 'lucide-react';
->>>>>>> 0e94140 (add cetificate)
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -34,31 +28,6 @@ export default function TrainerCoursesPage() {
     enabled: !!token,
   });
 
-<<<<<<< HEAD
-  const rows: Row[] = (data ?? []).map((c) => ({
-    id: c.id,
-    title: c.title,
-    status: c.status ?? 'DRAFT',
-    slug: c.slug,
-    shortDescription: c.shortDescription,
-  }));
-
-  const columns: DataColumn<Row>[] = [
-    { id: 'title', header: 'Course', accessor: (r) => <span className="font-medium">{r.title}</span>, sortValue: (r) => r.title },
-    { id: 'status', header: 'Status', accessor: (r) => (
-      <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLES[r.status] ?? STATUS_STYLES.DRAFT}`}>{r.status.replace('_', ' ')}</span>
-    ), sortValue: (r) => r.status },
-    { id: 'actions', header: '', accessor: (r) => (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Link href={`/courses/preview/${r.slug}`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline">
-          <Eye className="h-3.5 w-3.5" /> Preview
-        </Link>
-        <Link href={`/trainer/courses/${r.id}/edit`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline">
-          <Pencil className="h-3.5 w-3.5" /> {r.status === 'DRAFT' ? 'Improve' : 'Edit'}
-        </Link>
-      </div>
-    ), filterable: false },
-=======
   const columns: DataColumn<Course>[] = [
     { id: 'title', header: 'Course', accessor: (r) => <span className="font-medium">{r.title}</span>, sortValue: (r) => r.title },
     {
@@ -66,7 +35,7 @@ export default function TrainerCoursesPage() {
       header: 'Status',
       accessor: (r) => (
         <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLES[r.status ?? 'DRAFT'] ?? STATUS_STYLES.DRAFT}`}>
-          {r.status ?? 'DRAFT'}
+          {(r.status ?? 'DRAFT').replace('_', ' ')}
         </span>
       ),
       sortValue: (r) => r.status ?? 'DRAFT',
@@ -76,13 +45,17 @@ export default function TrainerCoursesPage() {
       id: 'actions',
       header: '',
       accessor: (r) => (
-        <Link href={`/trainer/courses/${r.id}/edit`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline">
-          <Pencil className="h-3.5 w-3.5" /> Edit
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link href={`/courses/preview/${r.slug}`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline">
+            <Eye className="h-3.5 w-3.5" /> Preview
+          </Link>
+          <Link href={`/trainer/courses/${r.id}/edit`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-green hover:underline">
+            <Pencil className="h-3.5 w-3.5" /> {r.status === 'DRAFT' ? 'Improve' : 'Edit'}
+          </Link>
+        </div>
       ),
       filterable: false,
     },
->>>>>>> 0e94140 (add cetificate)
   ];
 
   return (

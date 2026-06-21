@@ -124,7 +124,6 @@ export function publishCourse(id: string, token: string) {
   return apiRequest(`/courses/${id}/publish`, { method: 'POST', token });
 }
 
-<<<<<<< HEAD
 export function listPendingCourses(token: string) {
   return apiRequest<Course[]>('/courses/pending', { token });
 }
@@ -139,14 +138,6 @@ export function approveCourse(id: string, token: string) {
 
 export function rejectCourse(id: string, token: string) {
   return apiRequest<Course>(`/courses/${id}/reject`, { method: 'POST', token });
-=======
-export function approveCourse(id: string, token: string) {
-  return apiRequest(`/courses/${id}/approve`, { method: 'POST', token });
-}
-
-export function rejectCourse(id: string, token: string) {
-  return apiRequest(`/courses/${id}/reject`, { method: 'POST', token });
->>>>>>> 0e94140 (add cetificate)
 }
 
 /** Aggregate students across all trainer courses. */

@@ -397,42 +397,6 @@ async function main(): Promise<void> {
             order: 1,
             content: JSON.stringify(ROBOTICS_QUIZ),
           },
-<<<<<<< HEAD
-        },
-        update: { status: statuses[c] },
-      });
-
-      await prisma.courseChatRoom.upsert({
-        where: { courseId: course.id },
-        create: { courseId: course.id },
-        update: {},
-      });
-
-      const mod = await prisma.courseModule.create({
-        data: {
-          courseId: course.id,
-          title: 'Module 1: Introduction',
-          order: 1,
-          isPublished: statuses[c] === CourseStatus.PUBLISHED,
-          lessons: {
-            create: [
-              {
-                title: 'Welcome Video',
-                type: LessonType.VIDEO,
-                videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-                order: 1,
-                isPublished: statuses[c] === CourseStatus.PUBLISHED,
-                isFree: true,
-              },
-              {
-                title: 'Getting Started',
-                type: LessonType.TEXT,
-                content: '<p>Welcome to the course!</p>',
-                order: 2,
-                isPublished: statuses[c] === CourseStatus.PUBLISHED,
-              },
-            ],
-=======
           {
             title: 'Design your robot plan',
             type: LessonType.ASSIGNMENT,
@@ -443,7 +407,6 @@ async function main(): Promise<void> {
                 '<p>Write a short proposal (200+ words) describing a robot you would build for your school. Include:</p><ul><li>Purpose of the robot</li><li>Sensors needed</li><li>One challenge you expect</li></ul><p>Your trainer will review and grade this before you can finish the course.</p>',
               maxScore: 100,
             },
->>>>>>> 0e94140 (add cetificate)
           },
         ],
       },

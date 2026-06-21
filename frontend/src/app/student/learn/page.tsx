@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft, ChevronRight, List, Check,
   PlayCircle, BookOpen, ClipboardCheck, Award,
-  Menu, X, GraduationCap,
+  X, GraduationCap,
 } from 'lucide-react';
 import { getCourseById } from '@/lib/api/courses';
 import { markLessonComplete, sendHeartbeat } from '@/lib/api/progress';
@@ -26,7 +26,6 @@ import { useAuthStore } from '@/lib/auth/store';
 import { Button } from '@/components/ui/button';
 import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 interface Lesson {
   id: string;
@@ -53,12 +52,6 @@ interface CourseDetail {
   slug: string;
   thumbnailUrl?: string | null;
   modules: Module[];
-}
-
-interface LessonProgress {
-  lessonId: string;
-  completed: boolean;
-  completedAt?: string;
 }
 
 function normalizeLessonType(type: string): Lesson['type'] {
@@ -107,8 +100,6 @@ function StudentLearnInner() {
   const [completing, setCompleting] = useState(false);
   const watchedSecRef = useRef(0);
 
-<<<<<<< HEAD
-=======
   const { data: progressData, refetch: refetchProgress } = useLearningProgress(courseId);
 
   const progress = useMemo(() => {
@@ -122,8 +113,6 @@ function StudentLearnInner() {
   const enrollmentStatus = progressData?.enrollmentStatus ?? 'ACTIVE';
   const learningMinutes = progressData?.learningMinutes ?? 0;
 
-  // Flatten all lessons for next/prev navigation
->>>>>>> 0e94140 (add cetificate)
   const allLessons = course?.modules.flatMap((m) => m.lessons.sort((a, b) => a.order - b.order)).sort((a, b) => a.order - b.order) ?? [];
   const currentIdx = allLessons.findIndex((l) => l.id === currentLesson?.id);
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
@@ -148,24 +137,6 @@ function StudentLearnInner() {
     }
   }, [courseId, accessToken]);
 
-<<<<<<< HEAD
-  const loadProgress = useCallback(async () => {
-    if (!courseId || !accessToken) return;
-    try {
-      const data = await getCourseProgress(courseId, accessToken);
-      const map: Record<string, boolean> = {};
-      data.lessonProgress.forEach((p: LessonProgress) => {
-        map[p.lessonId] = p.completed;
-      });
-      setProgress(map);
-      setLearningMinutes(data.learningMinutes);
-    } catch {
-      // ignore
-    }
-  }, [courseId, accessToken]);
-
-=======
->>>>>>> 0e94140 (add cetificate)
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login?redirect=/student/enrolled');
@@ -281,46 +252,25 @@ function StudentLearnInner() {
             <>
               {/* ── VIDEO LESSON ── */}
               {currentLesson.type === 'video' && currentLesson.videoUrl ? (
-<<<<<<< HEAD
-                <>
-                  {/* Video wrapper — fills all available width, 16:9 height, or full screen in cinema */}
-                  <div
-                    className={cn(
-                      'relative w-full shrink-0 bg-black',
-                      cinemaMode
-                        ? 'h-[calc(100dvh-3.5rem)]'
-                        : 'aspect-video',
-                    )}
-                    style={!cinemaMode ? { maxHeight: 'calc(100vw * 9 / 16)' } : undefined}
-                  >
-                    <LessonVideoPlayer
-                      key={currentLesson.id}
-                      videoUrl={currentLesson.videoUrl}
-                      title={currentLesson.title}
-                      coverImageUrl={currentLesson.coverImageUrl ?? course?.thumbnailUrl ?? undefined}
-                      onWatchProgress={handleWatchProgress}
-                      onViewChange={handleVideoViewChange}
-                      // Force the player to fill the wrapper completely
-                      className="absolute inset-0 h-full w-full"
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-                    />
-                  </div>
-                </>
-=======
-                <section className="w-full bg-neutral-950 px-4 py-5 sm:px-6 sm:py-8 lg:py-10">
-                  <div className="mx-auto w-full max-w-5xl">
-                    <LessonVideoPlayer
-                      videoUrl={currentLesson.videoUrl}
-                      title={currentLesson.title}
-                      onWatchProgress={handleWatchProgress}
-                      className="overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10"
-                    />
-                    <p className="mt-3 text-center text-xs text-white/50 sm:text-left">
-                      {currentLesson.title}
-                    </p>
-                  </div>
-                </section>
->>>>>>> 0e94140 (add cetificate)
+                <div
+                  className={cn(
+                    'relative w-full shrink-0 bg-black',
+                    cinemaMode
+                      ? 'h-[calc(100dvh-3.5rem)]'
+                      : 'aspect-video',
+                  )}
+                  style={!cinemaMode ? { maxHeight: 'calc(100vw * 9 / 16)' } : undefined}
+                >
+                  <LessonVideoPlayer
+                    key={currentLesson.id}
+                    videoUrl={currentLesson.videoUrl}
+                    title={currentLesson.title}
+                    coverImageUrl={currentLesson.coverImageUrl ?? course?.thumbnailUrl ?? undefined}
+                    onWatchProgress={handleWatchProgress}
+                    onViewChange={handleVideoViewChange}
+                    className="absolute inset-0 h-full w-full"
+                  />
+                </div>
               ) : (
                 /* ── NON-VIDEO LESSON BANNER ── */
                 <div className="relative aspect-[21/9] w-full min-h-[200px] max-h-[400px] overflow-hidden bg-brand-green">
@@ -344,7 +294,6 @@ function StudentLearnInner() {
                 </div>
               )}
 
-<<<<<<< HEAD
               {/* ── LESSON BODY (hidden in cinema mode) ── */}
               {!cinemaMode && (
                 <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
@@ -360,86 +309,6 @@ function StudentLearnInner() {
                         <Check className="h-3.5 w-3.5" />
                         Completed
                       </span>
-=======
-              {/* Lesson body */}
-              <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
-                {/* Nav */}
-                <div className="mb-6 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-green/60">
-                      Lesson {currentIdx + 1} of {allLessons.length}
-                    </p>
-                    <h1 className="mt-1 text-2xl font-extrabold text-brand-ink">{currentLesson.title}</h1>
-                  </div>
-                  {progress[currentLesson.id] && (
-                    <span className="flex items-center gap-1.5 rounded-full bg-brand-mint/25 px-3 py-1.5 text-xs font-bold text-brand-green">
-                      <Check className="h-3.5 w-3.5" />
-                      Completed
-                    </span>
-                  )}
-                </div>
-
-                {currentLesson.description && (
-                  <div className="mb-6 rounded-lg border border-brand-green/8 bg-brand-mint-wash p-4">
-                    <HtmlContent html={currentLesson.description} className="text-sm" />
-                  </div>
-                )}
-
-                {currentLesson.type === 'quiz' && (
-                  <QuizLesson lessonId={currentLesson.id} onComplete={() => markComplete(currentLesson.id)} />
-                )}
-
-                {currentLesson.type === 'assignment' && (
-                  <AssignmentLesson
-                    lessonId={currentLesson.id}
-                    onComplete={() => markComplete(currentLesson.id)}
-                  />
-                )}
-
-                {currentLesson.type === 'text' && currentLesson.content && (
-                  <HtmlContent html={currentLesson.content} className="leading-relaxed" />
-                )}
-
-                {!currentLesson.content && currentLesson.type === 'text' && (
-                  <div className="rounded-xl border border-brand-green/8 bg-brand-mint-wash p-8 text-center">
-                    <BookOpen className="mx-auto h-10 w-10 text-brand-green/30" />
-                    <p className="mt-3 text-sm text-brand-ink/55">Lesson content will appear here.</p>
-                  </div>
-                )}
-
-                {courseId && (
-                  <CertificateRequestPanel
-                    courseId={courseId}
-                    enrollmentStatus={enrollmentStatus}
-                    progressPercent={progressPercent}
-                  />
-                )}
-
-                {/* Complete + navigate */}
-                <div className="mt-10 flex flex-col gap-4 border-t border-brand-green/8 pt-8 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-3">
-                    {prevLesson && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setCurrentLesson(prevLesson)}
-                        className="gap-1.5 border-brand-green/20 text-brand-green"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        Previous
-                      </Button>
-                    )}
-                    {nextLesson && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setCurrentLesson(nextLesson)}
-                        className="gap-1.5 border-brand-green/20 text-brand-green"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
->>>>>>> 0e94140 (add cetificate)
                     )}
                   </div>
 
@@ -469,6 +338,14 @@ function StudentLearnInner() {
                       <BookOpen className="mx-auto h-10 w-10 text-brand-green/30" />
                       <p className="mt-3 text-sm text-brand-ink/55">Lesson content will appear here.</p>
                     </div>
+                  )}
+
+                  {courseId && (
+                    <CertificateRequestPanel
+                      courseId={courseId}
+                      enrollmentStatus={enrollmentStatus}
+                      progressPercent={progressPercent}
+                    />
                   )}
 
                   <div className="mt-10 flex flex-col gap-4 border-t border-brand-green/8 pt-8 sm:flex-row sm:items-center sm:justify-between">

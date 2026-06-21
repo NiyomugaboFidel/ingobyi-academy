@@ -111,7 +111,6 @@ export function getCommunityProfile(userId: string, token?: string | null) {
   return apiRequest<CommunityProfile>(`/community/${userId}/profile`, { token });
 }
 
-<<<<<<< HEAD
 export function searchCommunityUsers(token: string, q: string, limit = 20) {
   const qs = new URLSearchParams({ q, limit: String(limit) });
   return apiRequest<CommunityAuthor[]>(`/community/search?${qs}`, { token });
@@ -120,7 +119,8 @@ export function searchCommunityUsers(token: string, q: string, limit = 20) {
 export function sharePostOnLinkedIn(postUrl: string, text: string) {
   const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}&summary=${encodeURIComponent(text)}`;
   window.open(url, '_blank', 'noopener,noreferrer');
-=======
+}
+
 export function getCommunityFollowers(userId: string, token?: string | null, page = 1, limit = 20) {
   const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
   return apiRequest<Paginated<CommunityAuthor>>(`/community/${userId}/followers?${qs}`, { token });
@@ -146,7 +146,6 @@ export function getPeopleYouMayKnow(token: string) {
 
 export function getPopularCommunityPeople(token?: string | null) {
   return apiRequest<CommunityAuthor[]>('/community/people/popular', { token });
->>>>>>> 0e94140 (add cetificate)
 }
 
 export function deleteCommunityPost(postId: string, token: string) {

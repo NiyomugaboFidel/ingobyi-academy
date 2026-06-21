@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-.PHONY: help dev docker-check docker-init docker-up docker-down docker-logs docker-seed docker-health docker-rebuild docker-dev docker-dev-down docker-ps compose
-=======
 .PHONY: help dev dev-local docker-check docker-init docker-up docker-down docker-logs docker-seed docker-health docker-rebuild docker-dev docker-dev-down docker-ps compose
->>>>>>> 0e94140 (add cetificate)
 
 COMPOSE := ./scripts/compose.sh
 COMPOSE_DEV := $(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml

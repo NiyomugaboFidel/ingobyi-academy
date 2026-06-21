@@ -52,27 +52,10 @@ export class CommunityService {
         include: {
           author: { select: publicUserFieldsSelect },
           comments: {
-            take: 3,
+            take: 5,
             orderBy: { createdAt: 'desc' },
             include: { author: { select: publicUserFieldsSelect } },
           },
-<<<<<<< HEAD
-          comments: {
-            take: 5,
-            orderBy: { createdAt: 'desc' },
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  avatarUrl: true,
-                },
-              },
-            },
-          },
-=======
->>>>>>> 0e94140 (add cetificate)
         },
       }),
       this.prisma.communityPost.count({ where }),

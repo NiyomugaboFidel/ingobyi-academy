@@ -91,7 +91,7 @@ export class SuperadminController {
   @Get('courses/pending')
   @ApiOperation({ summary: 'Courses pending review' })
   pending(@Query() pagination: PaginationDto) {
-    return this.courses.listPending(pagination);
+    return this.courses.listPendingPaginated(pagination);
   }
 
   @Post('courses/:id/approve')

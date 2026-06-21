@@ -25,7 +25,7 @@ export default function CoursePreviewPage() {
   const router = useRouter();
   const token = useAuthStore((s) => s.accessToken)!;
   const role = useAuthStore((s) => s.user?.platformRole);
-  const orgRole = useAuthStore((s) => s.user?.orgRole);
+  const orgRole = useAuthStore((s) => s.user?.activeOrgRole);
   const canApprove = role === 'SUPERADMIN' || orgRole === 'ADMIN';
   const queryClient = useQueryClient();
 

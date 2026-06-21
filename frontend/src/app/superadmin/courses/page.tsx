@@ -2,13 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-<<<<<<< HEAD
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Check, Eye, ExternalLink, Plus, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { BookOpen, Check, Eye, ExternalLink, X } from 'lucide-react';
 import { toast } from 'sonner';
-=======
-import { BookOpen, ExternalLink } from 'lucide-react';
->>>>>>> 0e94140 (add cetificate)
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { DataTable, type DataColumn } from '@/components/dashboard/data-table';
@@ -41,8 +37,6 @@ export default function SuperadminCoursesPage() {
     enabled: !!token,
   });
 
-<<<<<<< HEAD
-  const rows = data?.data ?? [];
   const pendingCount = rows.filter((c) => c.status === 'PENDING_REVIEW').length;
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
@@ -64,8 +58,6 @@ export default function SuperadminCoursesPage() {
     }
   }
 
-=======
->>>>>>> 0e94140 (add cetificate)
   const columns: DataColumn<Course>[] = [
     {
       id: 'title',
@@ -152,13 +144,12 @@ export default function SuperadminCoursesPage() {
 
   return (
     <DashboardShell allowedRoles={['SUPERADMIN']}>
-<<<<<<< HEAD
       <PageHeader
         title="All courses"
         description={
           pendingCount > 0
-            ? `${data?.meta.total ?? rows.length} courses · ${pendingCount} awaiting approval`
-            : `Platform-wide course registry — ${data?.meta.total ?? rows.length} total.`
+            ? `${meta?.total ?? rows.length} courses · ${pendingCount} awaiting approval on this page`
+            : `Platform-wide course registry — ${meta?.total ?? rows.length} total.`
         }
         breadcrumbs={[
           { label: 'Superadmin', href: '/superadmin/dashboard' },
@@ -167,7 +158,7 @@ export default function SuperadminCoursesPage() {
         actions={
           pendingCount > 0 ? (
             <Button asChild size="sm" variant="outline" className="h-8 text-xs">
-              <Link href="/superadmin/course-approvals">Approval queue ({pendingCount})</Link>
+              <Link href="/superadmin/course-approvals">Approval queue</Link>
             </Button>
           ) : undefined
         }
@@ -184,24 +175,11 @@ export default function SuperadminCoursesPage() {
         <ApiErrorBanner
           message={getErrorMessage(error)}
           onRetry={() => refetch()}
-          retrying={isLoading}
-=======
-      
-        <PageHeader
-          title="All courses"
-          description={`Platform-wide course registry — ${meta?.total ?? rows.length} total.`}
-          breadcrumbs={[
-            { label: 'Superadmin', href: '/superadmin/dashboard' },
-            { label: 'Courses' },
-          ]}
->>>>>>> 0e94140 (add cetificate)
+          retrying={isFetching}
         />
       )}
 
-<<<<<<< HEAD
-      {isLoading ? (
-        <div className="dash-card h-64 animate-pulse bg-brand-canvas" />
-      ) : rows.length === 0 && !error ? (
+      {!isLoading && rows.length === 0 && !error ? (
         <EmptyState
           icon={BookOpen}
           title="No courses yet"
@@ -213,41 +191,16 @@ export default function SuperadminCoursesPage() {
         <DataTable
           data={rows}
           columns={columns}
+          loading={isLoading || isFetching}
           searchPlaceholder="Search courses…"
           searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
           exportFilename="all-courses.csv"
           pageSize={15}
+          serverPagination={
+            meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
+          }
         />
       )}
-=======
-        {error && (
-          <ApiErrorBanner message={getErrorMessage(error)} onRetry={() => refetch()} retrying={isFetching} />
-        )}
-
-        {!isLoading && rows.length === 0 && !error ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No courses yet"
-            description="Courses created by trainers and organizations will appear here."
-            primaryAction={{ label: 'View catalog', href: '/catalog' }}
-            secondaryAction={{ label: 'Pending approvals', href: '/superadmin/course-approvals' }}
-          />
-        ) : (
-          <DataTable
-            data={rows}
-            columns={columns}
-            loading={isLoading || isFetching}
-            searchPlaceholder="Search courses…"
-            searchKeys={[(r) => r.title, (r) => r.org?.name ?? '']}
-            exportFilename="all-courses.csv"
-            pageSize={15}
-            serverPagination={
-              meta ? { page, totalPages: meta.totalPages, total: meta.total, onPageChange: setPage } : undefined
-            }
-          />
-        )}
-      
->>>>>>> 0e94140 (add cetificate)
     </DashboardShell>
   );
 }

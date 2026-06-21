@@ -119,7 +119,7 @@ export class CoursesService {
     };
   }
 
-  async listPending(pagination: PaginationDto) {
+  async listPendingPaginated(pagination: PaginationDto) {
     const where = { status: CourseStatus.PENDING_REVIEW };
     const [data, total] = await Promise.all([
       this.prisma.course.findMany({
@@ -243,7 +243,6 @@ export class CoursesService {
     });
   }
 
-<<<<<<< HEAD
   async listPending(user: AuthenticatedUser) {
     const include = {
       org: { select: { id: true, name: true, slug: true } },
@@ -327,18 +326,10 @@ export class CoursesService {
     return course;
   }
 
-  async requestPublish(id: string, userId: string) {
-    const existing = await this.prisma.course.findUnique({
-      where: { id },
-      include: { org: { select: { name: true } } },
-    });
-    if (!existing) throw new NotFoundException('Course not found');
-
-=======
   async requestPublish(id: string, user: AuthenticatedUser) {
     const existing = await this.getCourseForAction(id);
     this.assertCanManageCourse(user, existing);
->>>>>>> 0e94140 (add cetificate)
+
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PENDING_REVIEW },
@@ -393,31 +384,9 @@ export class CoursesService {
   }
 
   async approve(id: string, user: AuthenticatedUser) {
-<<<<<<< HEAD
-    const existing = await this.prisma.course.findUnique({
-      where: { id },
-      include: {
-        trainers: { select: { userId: true } },
-      },
-    });
-    if (!existing) throw new NotFoundException('Course not found');
-
-    if (user.role !== UserRole.SUPERADMIN) {
-      const isOrgAdmin =
-        user.orgRole === UserRole.ADMIN &&
-        user.orgId &&
-        existing.orgId === user.orgId;
-      if (!isOrgAdmin) {
-        throw new ForbiddenException(
-          'Only organization admin or superadmin can approve courses',
-        );
-      }
-    }
-
-=======
     const existing = await this.getCourseForAction(id);
     this.assertCanReviewCourse(user, existing);
->>>>>>> 0e94140 (add cetificate)
+
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.PUBLISHED, publishedAt: new Date() },
@@ -444,29 +413,9 @@ export class CoursesService {
   }
 
   async reject(id: string, user: AuthenticatedUser) {
-<<<<<<< HEAD
-    const existing = await this.prisma.course.findUnique({
-      where: { id },
-      include: { trainers: { select: { userId: true } } },
-    });
-    if (!existing) throw new NotFoundException('Course not found');
-
-    if (user.role !== UserRole.SUPERADMIN) {
-      const isOrgAdmin =
-        user.orgRole === UserRole.ADMIN &&
-        user.orgId &&
-        existing.orgId === user.orgId;
-      if (!isOrgAdmin) {
-        throw new ForbiddenException(
-          'Only organization admin or superadmin can reject courses',
-        );
-      }
-    }
-
-=======
     const existing = await this.getCourseForAction(id);
     this.assertCanReviewCourse(user, existing);
->>>>>>> 0e94140 (add cetificate)
+
     const course = await this.prisma.course.update({
       where: { id },
       data: { status: CourseStatus.DRAFT },
