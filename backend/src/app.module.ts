@@ -39,7 +39,6 @@ import { ParentModule } from './modules/parent/parent.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { PartnerApiModule } from './modules/partner-api/partner-api.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
-import { UploadsModule } from './modules/uploads/uploads.module';
 import { SuperadminModule } from './modules/superadmin/superadmin.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
@@ -97,7 +96,6 @@ import { RbacModule } from './modules/rbac/rbac.module';
     ApiKeysModule,
     PartnerApiModule,
     CatalogModule,
-    UploadsModule,
     SuperadminModule,
     ReportsModule,
     WishlistModule,
